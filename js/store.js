@@ -4,11 +4,31 @@
  * 実際のDB/API通信は一切行わず、localStorageのみで状態を保持する。
  */
 
-const STORAGE_KEY = "teishutsu_mock_state_v1";
+// データ構造（templates/clients[].submissionMethods/certTypes[].deadlineType 等）を
+// 変更するたびに STORAGE_KEY のバージョン番号と CURRENT_SCHEMA_VERSION を両方上げること。
+// こうすることで、古いスキーマのlocalStorageが残っている環境でも、
+// その古いデータを読み込んで壊れた画面を表示することがない。
+const STORAGE_KEY = "teishutsu_mock_state_v2";
+const CURRENT_SCHEMA_VERSION = 2;
 // 作業員がスマホ画面から「提出」した内容を、事務員側の管理画面と疑似連動させるための共有キー。
 // mobile-submit.html（独立ページ）と本体アプリの双方が、同じキー名で直接localStorageを読み書きする。
 const PENDING_SUBMISSIONS_KEY = "teishutsu_mock_pending_submissions_v1";
 const DEADLINE_WARNING_DAYS = 30;
+
+// 保存データが現在のSEED_DATAスキーマと互換性があるかを最低限チェックする。
+// モックなので項目ごとの詳細なマイグレーションは行わず、
+// 合致しなければ丸ごと初期データへ差し替える方針にする。
+function isValidSavedState(state) {
+  if (!state || typeof state !== "object") return false;
+  if (!state.meta || state.meta.schemaVersion !== CURRENT_SCHEMA_VERSION) return false;
+  return (
+    Array.isArray(state.templates) &&
+    Array.isArray(state.clients) &&
+    Array.isArray(state.certTypes) &&
+    Array.isArray(state.workers) &&
+    Array.isArray(state.sites)
+  );
+}
 
 const Store = {
   state: null,
@@ -17,8 +37,12 @@ const Store = {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        this.state = JSON.parse(saved);
-        return;
+        const parsed = JSON.parse(saved);
+        if (isValidSavedState(parsed)) {
+          this.state = parsed;
+          return;
+        }
+        console.warn("保存データのスキーマが古い、または不正なため初期データで再初期化します");
       } catch (e) {
         console.warn("保存データの読み込みに失敗したため初期データを使用します", e);
       }
@@ -62,7 +86,7 @@ const Store = {
     return this.state.company.documents.find((d) => d.id === id) || null;
   },
   getTemplate(id) {
-    return this.state.templates.find((t) => t.id === id) || null;
+    return (this.state.templates || []).find((t) => t.id === id) || null;
   },
 
   // ---- 作業員からのスマホ提出（localStorage共有） ----

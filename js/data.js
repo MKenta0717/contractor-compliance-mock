@@ -6,6 +6,8 @@
 
 const SEED_DATA = {
   meta: {
+    // データ構造を変更したら store.js の CURRENT_SCHEMA_VERSION と揃えて番号を上げること。
+    schemaVersion: 2,
     productName: "提出書類AIアシスタント",
     planName: "スタンダードプラン",
     planPrice: 4980,
