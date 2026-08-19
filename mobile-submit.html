@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>資格証の提出依頼（モック）</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232563eb'/%3E%3Ctext x='16' y='22' font-size='17' font-family='sans-serif' font-weight='700' fill='white' text-anchor='middle'%3E提%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  body { background: var(--color-bg); }
+</style>
+</head>
+<body>
+
+<div class="demo-banner">これはクリック体験用の<b>モック画面</b>です。実際のアップロード・送信は行われません。</div>
+
+<div class="mobile-page">
+  <div class="mobile-container">
+    <div class="mobile-header">
+      <div class="mobile-header-company" id="hdrCompany">株式会社三和設備</div>
+      <div class="mobile-header-title">資格証の提出依頼</div>
+    </div>
+    <div class="mobile-body" id="mobileBody">
+      <!-- JSで描画 -->
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+/* ============================================================
+   独立ページ：SPA本体（index.html）に依存しない。
+   不足資料依頼メール・SMSのリンクを開いた想定のモック。
+   ============================================================ */
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function getParam(name, fallback) {
+  const v = new URLSearchParams(location.search).get(name);
+  return v && v.trim() ? v : fallback;
+}
+
+function formatDateJP(dateStr) {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr + "T00:00:00");
+  if (isNaN(d.getTime())) return dateStr;
+  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`;
+}
+
+const ctx = {
+  company: getParam("company", "株式会社三和設備"),
+  site: getParam("site", "○○ビル新築工事"),
+  worker: getParam("worker", "山田 太郎"),
+  cert: getParam("cert", "高所作業車運転技能講習"),
+  deadline: getParam("deadline", "2026-08-25"),
+};
+
+let selectedFile = null; // { dataUrl, name, isImage }
+
+const ICON_CAMERA = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8z"/><circle cx="12" cy="13" r="3.5"/></svg>`;
+const ICON_FOLDER = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-10z"/></svg>`;
+const ICON_FILE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><polyline points="14 3 14 8 19 8"/></svg>`;
+
+function render() {
+  document.getElementById("hdrCompany").textContent = ctx.company;
+  document.getElementById("mobileBody").innerHTML = `
+    <div class="mobile-card">
+      <div class="mobile-card-row"><span class="label">現場</span><span class="value">${escapeHtml(ctx.site)}</span></div>
+      <div class="mobile-card-row"><span class="label">対象者</span><span class="value">${escapeHtml(ctx.worker)}</span></div>
+      <div class="mobile-card-row"><span class="label">必要資料</span><span class="value">${escapeHtml(ctx.cert)}</span></div>
+      <div class="mobile-card-row"><span class="label">提出期限</span><span class="value">${formatDateJP(ctx.deadline)}</span></div>
+    </div>
+
+    <div class="form-hint" style="margin-bottom:14px;font-size:13px;">
+      ${escapeHtml(ctx.site)}への入場準備のため、${escapeHtml(ctx.cert)}の資格証をご提出ください。
+    </div>
+
+    <div class="mobile-photo-preview" id="photoPreview">
+      ${selectedFile ? (selectedFile.isImage ? `<img src="${selectedFile.dataUrl}" alt="選択した画像">` : `<div style="text-align:center;">${ICON_FILE}<div style="margin-top:8px;font-size:12.5px;">${escapeHtml(selectedFile.name)}</div></div>`) : `<div style="text-align:center;color:var(--color-neutral-400);">${ICON_FOLDER}<div style="margin-top:8px;">まだファイルが選択されていません</div></div>`}
+    </div>
+
+    <div class="mobile-btn-row" style="margin-bottom:20px;">
+      <button class="btn btn-secondary" id="btnCamera">${ICON_CAMERA}写真を撮る</button>
+      <button class="btn btn-secondary" id="btnFile">${ICON_FOLDER}ファイルを選択</button>
+    </div>
+
+    <input type="file" id="fileCameraInput" accept="image/*" capture="environment" style="display:none;">
+    <input type="file" id="fileGeneralInput" accept="image/*,.pdf" style="display:none;">
+
+    <button class="btn btn-primary btn-lg btn-block" id="btnSubmit" ${selectedFile ? "" : "disabled"}>提出する</button>
+    <div class="form-hint" style="text-align:center;margin-top:10px;">ログイン不要でご提出いただけます</div>
+  `;
+
+  document.getElementById("btnCamera").addEventListener("click", () => document.getElementById("fileCameraInput").click());
+  document.getElementById("btnFile").addEventListener("click", () => document.getElementById("fileGeneralInput").click());
+  document.getElementById("fileCameraInput").addEventListener("change", onFilePicked);
+  document.getElementById("fileGeneralInput").addEventListener("change", onFilePicked);
+  document.getElementById("btnSubmit").addEventListener("click", onSubmit);
+}
+
+function onFilePicked(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.type.startsWith("image/")) {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      selectedFile = { dataUrl: ev.target.result, name: file.name, isImage: true };
+      render();
+    };
+    reader.readAsDataURL(file);
+  } else {
+    selectedFile = { dataUrl: null, name: file.name, isImage: false };
+    render();
+  }
+}
+
+function onSubmit() {
+  if (!selectedFile) return;
+  document.getElementById("mobileBody").innerHTML = `
+    <div class="ai-loading">
+      <div class="ai-spinner"></div>
+      <div class="ai-loading-text">アップロードしています…</div>
+    </div>`;
+  setTimeout(renderComplete, 1200);
+}
+
+function renderComplete() {
+  document.getElementById("mobileBody").innerHTML = `
+    <div class="success-panel" style="padding:30px 10px;">
+      <div class="success-icon-circle">✓</div>
+      <div class="success-title">提出ありがとうございました</div>
+      <div class="success-sub">
+        ${escapeHtml(ctx.cert)}の資格証を受け付けました。<br>
+        内容は${escapeHtml(ctx.company)}の担当者に共有されます。
+      </div>
+      <div class="form-hint">このタブは閉じていただいて構いません。<br>（モックのため実際のアップロード・通知は行われません）</div>
+    </div>
+  `;
+}
+
+render();
+</script>
+</body>
+</html>
