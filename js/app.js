@@ -296,7 +296,7 @@ function closeSidebarMobile() {
    画面1: ダッシュボード
    ============================================================ */
 function renderDashboard() {
-  const { expired, expiring } = getGlobalCertCounts();
+  const { overdue, dueSoon } = getQualificationAttentionCounts();
   const missing = getGlobalMissingCount();
   const inProgress = getSitesInProgressCount();
   const actionItems = getActionItems();
@@ -315,16 +315,17 @@ function renderDashboard() {
 
     <div class="kpi-grid">
       <div class="kpi-card kpi-danger">
-        <div class="kpi-label">期限切れ</div>
-        <div class="kpi-value text-danger">${expired}<span class="kpi-unit">件</span></div>
+        <div class="kpi-label">要対応</div>
+        <div class="kpi-value text-danger">${overdue}<span class="kpi-unit">件</span></div>
       </div>
       <div class="kpi-card kpi-warning">
-        <div class="kpi-label">30日以内に期限</div>
-        <div class="kpi-value text-warning">${expiring}<span class="kpi-unit">件</span></div>
+        <div class="kpi-label">30日以内の確認</div>
+        <div class="kpi-value text-warning">${dueSoon}<span class="kpi-unit">件</span></div>
       </div>
       <div class="kpi-card kpi-danger">
-        <div class="kpi-label">未提出の書類</div>
+        <div class="kpi-label">現場別の不足項目</div>
         <div class="kpi-value text-danger">${missing}<span class="kpi-unit">件</span></div>
+        <div class="kpi-note">同じ書類が複数現場で必要な場合は、それぞれ1件として集計しています</div>
       </div>
       <div class="kpi-card kpi-info">
         <div class="kpi-label">提出準備中の現場</div>
@@ -1598,11 +1599,15 @@ function renderSettings() {
           <div class="plan-name">${escapeHtml(m.planName)}</div>
           <div class="plan-price">¥${m.planPrice.toLocaleString()}<span>/月（税別）</span></div>
           <div class="plan-desc">
-            ・現場数、作業員数の上限なし<br>
-            ・AI資格証読み取り 無制限<br>
-            ・提出資料の自動生成<br>
-            次回更新日：2026/09/19
+            ・作業員 50名まで<br>
+            ・現場 無制限<br>
+            ・資格証AI登録<br>
+            ・提出準備チェック<br>
+            ・提出パック生成<br>
+            ・不足資料依頼<br>
+            <span style="opacity:0.75;">次回更新日：2026/09/19</span>
           </div>
+          <div class="form-hint" style="color:#cbd5e1;margin-top:10px;">※モック上の価格仮説です。本番の課金ロジックは実装していません。</div>
           <button class="btn btn-secondary btn-block" style="margin-top:18px;" data-action="not-implemented" data-msg="モック版ではプラン変更はできません">プランを変更</button>
         </div>
       </div>

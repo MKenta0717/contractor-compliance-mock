@@ -550,6 +550,13 @@ img {
   margin-left: 3px;
 }
 
+.kpi-note {
+  font-size: 11px;
+  color: var(--color-neutral-400);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
 /* ============ Badges / Pills ============ */
 
 .badge {
