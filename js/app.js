@@ -259,13 +259,17 @@ function renderNotifDropdown() {
     `<div class="notif-dropdown-header">対応が必要な項目（${items.length}件）</div>` +
     items
       .slice(0, 8)
-      .map(
-        (it) => `
-      <div class="notif-item" data-action="navigate" data-href="${it.actionHref}">
+      .map((it) => {
+        const attrs =
+          it.special === "review-submission"
+            ? `data-action="review-submission" data-id="${it.pendingId}"`
+            : `data-action="navigate" data-href="${it.actionHref}"`;
+        return `
+      <div class="notif-item" ${attrs}>
         <div class="notif-item-title">${escapeHtml(it.title)} - ${escapeHtml(it.subtitle)}</div>
         <div class="notif-item-sub">${escapeHtml(it.detail)}</div>
-      </div>`
-      )
+      </div>`;
+      })
       .join("");
 }
 
@@ -378,8 +382,12 @@ function renderDashboard() {
 }
 
 function renderActionRow(it) {
-  const colorMap = { danger: "var(--color-danger)", warning: "var(--color-warning)" };
-  const bgMap = { danger: "var(--color-danger-light)", warning: "var(--color-warning-light)" };
+  const colorMap = { danger: "var(--color-danger)", warning: "var(--color-warning)", info: "var(--color-primary)" };
+  const bgMap = { danger: "var(--color-danger-light)", warning: "var(--color-warning-light)", info: "var(--color-primary-light)" };
+  const actionHtml =
+    it.special === "review-submission"
+      ? `<button class="btn btn-secondary btn-sm" data-action="review-submission" data-id="${it.pendingId}">${it.actionLabel}</button>`
+      : `<a class="btn btn-secondary btn-sm" href="${it.actionHref}">${it.actionLabel}</a>`;
   return `
     <div class="action-row">
       <div class="action-row-left">
@@ -392,7 +400,7 @@ function renderActionRow(it) {
       </div>
       <div class="action-row-right">
         <span class="badge badge-${it.badgeType}">${it.badge}</span>
-        <a class="btn btn-secondary btn-sm" href="${it.actionHref}">${it.actionLabel}</a>
+        ${actionHtml}
       </div>
     </div>
   `;
@@ -1008,6 +1016,26 @@ function openAICertModal(workerId) {
   renderAIModalUpload(worker);
 }
 
+// 作業員からスマホで提出された資格証を、事務員が確認・登録する導線
+// （既存のAI資格証登録の確認モーダルを流用し、アップロード/読み取り待機ステップのみ省略する）
+function openSubmissionReviewModal(pendingId) {
+  const pending = Store.getPendingSubmissions().find((p) => p.id === pendingId);
+  if (!pending) {
+    showToast("この提出は既に処理済みです");
+    renderApp();
+    return;
+  }
+  const worker = Store.getWorker(pending.workerId);
+  const certType = Store.getCertType(pending.certTypeId);
+  if (!worker || !certType) return;
+  const extracted = generateExtractedCertData(certType);
+  renderAIModalReview(worker, extracted, pending.fileDataUrl || "sample", {
+    fromSubmission: true,
+    pendingId: pending.id,
+    submittedAt: pending.submittedAt,
+  });
+}
+
 function renderAIModalUpload(worker) {
   const html = modalShell(
     "資格証AI登録",
@@ -1059,28 +1087,39 @@ function startAILoading(worker, previewSrc) {
   }, 1500);
 }
 
-function renderAIModalReview(worker, extracted, previewSrc) {
+function renderAIModalReview(worker, extracted, previewSrc, context) {
+  const ctx = context || null;
+  const initialCertType = Store.getCertType(extracted.certTypeId) || Store.state.certTypes[0];
   const certOptions = Store.state.certTypes
     .map((ct) => `<option value="${ct.id}" ${ct.id === extracted.certTypeId ? "selected" : ""}>${escapeHtml(ct.name)}</option>`)
     .join("");
 
   const thumb =
     previewSrc && previewSrc !== "sample"
-      ? `<img src="${previewSrc}" alt="アップロード画像プレビュー">`
+      ? `<img src="${previewSrc}" alt="提出された資格証画像のプレビュー">`
       : icon("certs");
+
+  const noticeText = ctx && ctx.fromSubmission
+    ? `${escapeHtml(worker.name)}さんから提出された資格証です。AIの読み取り結果を確認して登録してください。`
+    : "AIによる読み取り結果です。内容を確認して登録してください。";
+  const thumbCaption = ctx && ctx.fromSubmission
+    ? `提出日時：${formatDateTimeJP(ctx.submittedAt)}`
+    : previewSrc === "sample"
+    ? "サンプル資格証を使用しています"
+    : "アップロードされた画像";
+
+  const isNone = initialCertType.deadlineType === "none";
 
   const html = modalShell(
     "資格証AI登録",
     `
     <div class="ai-notice">
       ${icon("warnTriangle")}
-      <div>AIによる読み取り結果です。内容を確認して登録してください。</div>
+      <div>${noticeText}</div>
     </div>
     <div class="upload-preview" style="margin-bottom:18px;">
       <div class="upload-preview-thumb">${thumb}</div>
-      <div style="font-size:13px;color:var(--color-text-sub);">
-        ${previewSrc === "sample" ? "サンプル資格証を使用しています" : "アップロードされた画像"}
-      </div>
+      <div style="font-size:13px;color:var(--color-text-sub);">${thumbCaption}</div>
     </div>
 
     <div class="form-group">
@@ -1109,8 +1148,9 @@ function renderAIModalReview(worker, extracted, previewSrc) {
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">有効期限（なしの場合は空欄）</label>
-      <input type="date" id="aiExpiryDate" value="${extracted.expiryDate}">
+      <label class="form-label" id="aiDeadlineLabel">${DEADLINE_TYPE_FIELD_LABEL[initialCertType.deadlineType]}</label>
+      <input type="date" id="aiDeadlineDate" value="${extracted.deadlineDate}" ${isNone ? "disabled" : ""}>
+      <div class="form-hint" id="aiDeadlineHint">${isNone ? "この資格には期限の概念がありません" : ""}</div>
     </div>
     `,
     `<button class="btn btn-secondary" data-action="close-modal">キャンセル</button>
@@ -1118,15 +1158,37 @@ function renderAIModalReview(worker, extracted, previewSrc) {
   );
   openModal(html);
 
+  qs("#aiCertType").addEventListener("change", () => {
+    const ct = Store.getCertType(qs("#aiCertType").value);
+    qs("#aiDeadlineLabel").textContent = DEADLINE_TYPE_FIELD_LABEL[ct.deadlineType];
+    const input = qs("#aiDeadlineDate");
+    const hint = qs("#aiDeadlineHint");
+    if (ct.deadlineType === "none") {
+      input.value = "";
+      input.disabled = true;
+      hint.textContent = "この資格には期限の概念がありません";
+    } else {
+      input.disabled = false;
+      if (!input.value) input.value = generateDeadlineDateFor(ct.deadlineType, qs("#aiObtainedDate").value || toISODate(new Date()));
+      hint.textContent = "";
+    }
+  });
+
   qs("#aiConfirmBtn").addEventListener("click", () => {
     const certTypeId = qs("#aiCertType").value;
     const issuer = qs("#aiIssuer").value.trim() || "-";
     const certNumber = qs("#aiCertNumber").value.trim() || "-";
     const obtainedDate = qs("#aiObtainedDate").value || toISODate(new Date());
-    const expiryDate = qs("#aiExpiryDate").value || null;
-    addWorkerCert(worker.id, { certTypeId, issuer, certNumber, obtainedDate, expiryDate });
+    const deadlineDate = qs("#aiDeadlineDate").value || null;
+    addWorkerCert(worker.id, { certTypeId, issuer, certNumber, obtainedDate, deadlineDate });
+    if (ctx && ctx.fromSubmission) {
+      Store.resolvePendingSubmission(ctx.pendingId);
+    }
     closeModal();
-    showToast("資格証を登録しました", "success");
+    showToast(
+      ctx && ctx.fromSubmission ? "資格証を登録しました。現場の不足状況が更新されました。" : "資格証を登録しました",
+      "success"
+    );
     renderApp();
   });
 }
@@ -1225,11 +1287,11 @@ function openRequestModal(siteId, workerId, certTypeId) {
 
 function renderRequestSuccess(site, items) {
   const first = items[0];
-  const previewUrl = `mobile-submit.html?worker=${encodeURIComponent(first.workerName)}&cert=${encodeURIComponent(
-    first.certName
-  )}&site=${encodeURIComponent(site.name)}&deadline=${encodeURIComponent(site.deadline)}&company=${encodeURIComponent(
-    Store.state.company.name
-  )}`;
+  const previewUrl =
+    `mobile-submit.html?worker=${encodeURIComponent(first.workerName)}&cert=${encodeURIComponent(first.certName)}` +
+    `&site=${encodeURIComponent(site.name)}&deadline=${encodeURIComponent(site.deadline)}` +
+    `&company=${encodeURIComponent(Store.state.company.name)}` +
+    `&workerId=${encodeURIComponent(first.workerId)}&certTypeId=${encodeURIComponent(first.certTypeId)}&siteId=${encodeURIComponent(site.id)}`;
   const html = modalShell(
     "不足資料の依頼",
     `
@@ -1562,6 +1624,9 @@ function handleAction(action, el) {
     case "open-add-cert":
       openAICertModal(el.dataset.worker);
       break;
+    case "review-submission":
+      openSubmissionReviewModal(el.dataset.id);
+      break;
     case "open-request-modal":
       if (el.disabled) return;
       openRequestModal(el.dataset.site, el.dataset.worker, el.dataset.cert);
@@ -1617,6 +1682,15 @@ document.addEventListener("click", (e) => {
 
 // ハッシュ内リンクのSPA遷移（<a href="#/...">はブラウザ標準のhashchangeで処理される）
 window.addEventListener("hashchange", renderApp);
+
+// 作業員側スマホ画面（別タブ/別ページ）からの提出を疑似連動させる。
+// storageイベントは「変更を行った側」以外のタブでのみ発火するため、
+// 管理画面を開いたまま別タブで提出すると、通知が自動で反映される。
+window.addEventListener("storage", (e) => {
+  if (e.key === "teishutsu_mock_pending_submissions_v1") {
+    renderApp();
+  }
+});
 
 /* ============================================================
    初期化

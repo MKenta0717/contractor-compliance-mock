@@ -57,7 +57,50 @@ const ctx = {
   worker: getParam("worker", "山田 太郎"),
   cert: getParam("cert", "高所作業車運転技能講習"),
   deadline: getParam("deadline", "2026-08-25"),
+  // 管理画面（index.html）側の状態と疑似連動させるためのID。
+  // 依頼メール・SMSのリンクから開いた場合はURLパラメータで渡されるが、
+  // このページを直接開いた場合はデモ用の既定値（山田太郎 / 高所作業車運転技能講習 / ○○ビル新築工事）を使う。
+  workerId: getParam("workerId", "w1"),
+  certTypeId: getParam("certTypeId", "ct2"),
+  siteId: getParam("siteId", "s1"),
 };
+
+// 管理画面（index.html）と同じlocalStorageキー。中身は store.js の PENDING_SUBMISSIONS_KEY と一致させること。
+const PENDING_SUBMISSIONS_KEY = "teishutsu_mock_pending_submissions_v1";
+
+function saveSubmissionToPending() {
+  let list = [];
+  try {
+    const raw = localStorage.getItem(PENDING_SUBMISSIONS_KEY);
+    list = raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    list = [];
+  }
+  const entry = {
+    id: `sub-${Date.now()}`,
+    siteId: ctx.siteId,
+    workerId: ctx.workerId,
+    certTypeId: ctx.certTypeId,
+    submittedAt: new Date().toISOString(),
+    fileName: selectedFile ? selectedFile.name : null,
+    fileDataUrl: selectedFile && selectedFile.isImage ? selectedFile.dataUrl : null,
+    status: "pending",
+  };
+  list.push(entry);
+  try {
+    localStorage.setItem(PENDING_SUBMISSIONS_KEY, JSON.stringify(list));
+  } catch (e) {
+    // スマホカメラ撮影画像は大きくlocalStorageの容量を超える場合があるため、
+    // 画像なしで再度保存を試みる（提出そのものは失敗させない）。
+    entry.fileDataUrl = null;
+    list[list.length - 1] = entry;
+    try {
+      localStorage.setItem(PENDING_SUBMISSIONS_KEY, JSON.stringify(list));
+    } catch (e2) {
+      // それでも失敗する場合は静かに諦める（モックのため致命的ではない）
+    }
+  }
+}
 
 let selectedFile = null; // { dataUrl, name, isImage }
 
@@ -125,7 +168,10 @@ function onSubmit() {
       <div class="ai-spinner"></div>
       <div class="ai-loading-text">アップロードしています…</div>
     </div>`;
-  setTimeout(renderComplete, 1200);
+  setTimeout(() => {
+    saveSubmissionToPending();
+    renderComplete();
+  }, 1200);
 }
 
 function renderComplete() {
@@ -135,7 +181,7 @@ function renderComplete() {
       <div class="success-title">提出ありがとうございました</div>
       <div class="success-sub">
         ${escapeHtml(ctx.cert)}の資格証を受け付けました。<br>
-        内容は${escapeHtml(ctx.company)}の担当者に共有されます。
+        ${escapeHtml(ctx.company)}の担当者が内容を確認したうえで登録します。
       </div>
       <div class="form-hint">このタブは閉じていただいて構いません。<br>（モックのため実際のアップロード・通知は行われません）</div>
     </div>
