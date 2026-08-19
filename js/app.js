@@ -473,10 +473,10 @@ function renderSitesList() {
   return `
     <div class="page-header">
       <div>
-        <div class="page-title">現場一覧</div>
+        <div class="page-title">現場管理</div>
         <div class="page-subtitle">全${Store.state.sites.length}件の現場を管理しています</div>
       </div>
-      <button class="btn btn-secondary" data-action="not-implemented" data-msg="モック版では新規現場の登録はできません">${icon("plus")}現場を登録する</button>
+      <button class="btn btn-secondary" data-action="not-implemented" data-msg="モック版では新規現場の登録はできません">新規現場登録</button>
     </div>
 
     <div class="filter-bar">
@@ -539,175 +539,139 @@ function bindSitesListFilters() {
    ============================================================ */
 function renderSiteDetail(siteId) {
   const site = Store.getSite(siteId);
-  if (!site) return renderNotFound("現場が見つかりません", "#/sites", "現場一覧に戻る");
+  if (!site) return renderNotFound("現場が見つかりません", "#/sites", "現場管理に戻る");
   const stats = computeSiteStats(site);
   const plannedWorkers = site.plannedWorkerIds.map((id) => Store.getWorker(id)).filter(Boolean);
-
-  const companyRows = stats.companyItems
-    .map((item) => {
-      const b = badgeForRequirementStatus(item.fulfilled ? "ok" : "missing");
-      return `
-      <div class="check-row ${item.fulfilled ? "fulfilled" : "missing"}">
-        <div class="check-row-left">
-          <span class="${b.cls}">${b.icon}</span>
-          <div class="check-row-text">
-            <div class="check-row-name">${escapeHtml(item.name)}</div>
-            <div class="check-row-sub">${item.fulfilled ? "準備済み" : "未アップロード"}</div>
-          </div>
-        </div>
-        <div class="check-row-right">
-          ${!item.fulfilled ? `<a class="btn btn-secondary btn-sm" href="#/company">会社情報で確認</a>` : ""}
-        </div>
-      </div>`;
-    })
-    .join("");
-
-  const workerBlocks = plannedWorkers
-    .map((worker) => {
-      const reqs = site.workerRequirements.filter((r) => r.workerId === worker.id);
-      const rows = reqs
-        .map((r) => {
-          const { status, cert } = getRequirementStatus(worker, r.certTypeId);
-          const certType = Store.getCertType(r.certTypeId);
-          const b = badgeForRequirementStatus(status);
-          const requested = isRequested(site.id, worker.id, r.certTypeId);
-          const rowCls =
-            status === "ok" || status === "advisory" ? "fulfilled" : status === "dueSoon" ? "expiring-row" : "missing";
-          let subText = "";
-          if (status === "ok") {
-            subText = "準備済み";
-          } else if (status === "advisory") {
-            subText = `次回教育推奨日：${formatDateJP(cert.deadlineDate)}（そろそろ再教育をご検討ください）`;
-          } else if (status === "dueSoon") {
-            subText = `${DEADLINE_TYPE_FIELD_LABEL[certType.deadlineType]}が近づいています（${formatDateJP(cert.deadlineDate)}）`;
-          } else if (status === "overdue") {
-            subText = `${DEADLINE_TYPE_FIELD_LABEL[certType.deadlineType]}を過ぎています（${formatDateJP(cert.deadlineDate)}）`;
-          } else if (status === "missing") {
-            subText = "未登録";
-          }
-          const needsRequest = status === "missing" || status === "overdue";
-          return `
-          <div class="check-row ${rowCls}">
-            <div class="check-row-left">
-              <span class="${b.cls}">${b.icon}</span>
-              <div class="check-row-text">
-                <div class="check-row-name">${escapeHtml(Store.getCertTypeName(r.certTypeId))}</div>
-                ${subText ? `<div class="check-row-sub">${escapeHtml(subText)}</div>` : ""}
-              </div>
-            </div>
-            <div class="check-row-right">
-              ${
-                needsRequest
-                  ? requested
-                    ? `<span class="badge badge-neutral">依頼済み</span>`
-                    : `<button class="btn btn-secondary btn-sm" data-action="open-request-modal" data-site="${site.id}" data-worker="${worker.id}" data-cert="${r.certTypeId}">依頼する</button>`
-                  : ""
-              }
-            </div>
-          </div>`;
-        })
-        .join("");
-      return `
-      <div class="worker-block">
-        <div class="worker-block-header">
-          <div class="avatar-circle sm" style="background:${worker.avatarColor}">${initialOf(worker.name)}</div>
-          <div>
-            <div class="check-row-name">${escapeHtml(worker.name)}</div>
-            <div class="check-row-sub">${escapeHtml(worker.jobType)}</div>
-          </div>
-          <a class="link-btn" style="margin-left:auto;" href="#/workers/${worker.id}">作業員詳細へ</a>
-        </div>
-        ${rows}
-      </div>`;
-    })
-    .join("");
-
   const client = Store.getClient(site.clientId);
   const template = client ? Store.getTemplate(client.templateId) : null;
   const methodBadges = (client ? client.submissionMethods : [])
     .map((m) => `<span class="badge badge-neutral method-badge">${escapeHtml(m)}</span>`)
+    .join(" ");
+
+  // ■ 対応が必要：会社書類・作業員の不足項目をまとめて1つの表にする
+  const needsAttentionRows = [
+    ...stats.missingCompanyItems.map((item) => ({
+      type: "company",
+      target: "-",
+      name: item.name,
+      statusLabel: "未アップロード",
+      actionHtml: `<a class="btn btn-secondary btn-sm" href="#/company">確認</a>`,
+    })),
+    ...stats.missingWorkerItems.map((item) => {
+      const requested = item.requested;
+      const statusLabel = item.status === "overdue" ? "期限切れ" : "未登録";
+      const actionHtml = requested
+        ? `<span class="badge badge-neutral">依頼済み</span>`
+        : `<button class="btn btn-secondary btn-sm" data-action="open-request-modal" data-site="${site.id}" data-worker="${item.workerId}" data-cert="${item.certTypeId}">依頼</button>`;
+      return { type: "作業員", target: item.workerName, name: item.certName, statusLabel, actionHtml };
+    }),
+  ];
+
+  // ■ 作業員別提出状況：作業員1人につき1行で必要資格数・準備済・不足を集計する
+  const workerSummaryRows = plannedWorkers
+    .map((worker) => {
+      const reqs = site.workerRequirements.filter((r) => r.workerId === worker.id);
+      let fulfilledCount = 0;
+      let missingCount = 0;
+      reqs.forEach((r) => {
+        const { status } = getRequirementStatus(worker, r.certTypeId);
+        if (status === "missing" || status === "overdue") missingCount++;
+        else fulfilledCount++;
+      });
+      const state =
+        missingCount > 0
+          ? `<span class="badge badge-danger">要対応</span>`
+          : fulfilledCount === reqs.length
+          ? `<span class="badge badge-success">完了</span>`
+          : `<span class="badge badge-warning">確認</span>`;
+      return `
+      <tr class="row-clickable" data-action="navigate" data-href="#/workers/${worker.id}">
+        <td class="cell-name">${escapeHtml(worker.name)}</td>
+        <td>${escapeHtml(worker.jobType)}</td>
+        <td>${reqs.length}</td>
+        <td>${fulfilledCount}</td>
+        <td>${missingCount > 0 ? `<span class="text-danger" style="font-weight:700;">${missingCount}</span>` : "0"}</td>
+        <td>${state}</td>
+      </tr>`;
+    })
     .join("");
 
   return `
-    <div class="breadcrumb"><a href="#/sites">現場一覧</a> <span>›</span> <span>${escapeHtml(site.name)}</span></div>
-
-    <div class="card card-pad" style="margin-bottom:20px;">
-      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:20px;align-items:flex-start;">
-        <div>
-          <div class="page-title">${escapeHtml(site.name)}</div>
-          <div class="info-grid" style="margin-top:14px;">
-            <div><div class="info-item-label">提出先（元請）</div><div class="info-item-value">${escapeHtml(Store.getClientName(site.clientId))}</div></div>
-            <div><div class="info-item-label">提出期限</div><div class="info-item-value">${formatDateJP(site.deadline)}</div></div>
-            <div><div class="info-item-label">工期</div><div class="info-item-value">${formatDateJP(site.periodStart)} 〜 ${formatDateJP(site.periodEnd)}</div></div>
-            <div><div class="info-item-label">配置予定</div><div class="info-item-value">${plannedWorkers.length}名</div></div>
-          </div>
-        </div>
-        <div style="text-align:right;min-width:160px;">
-          <div class="info-item-label">ステータス</div>
-          <div style="margin-top:4px;">${siteStatusBadge(site.status)}</div>
-        </div>
+    <div class="breadcrumb"><a href="#/sites">現場管理</a> <span>›</span> <span>${escapeHtml(site.name)}</span></div>
+    <div class="page-header">
+      <div>
+        <div class="page-title">${escapeHtml(site.name)}</div>
       </div>
-
-      <div class="divider"></div>
-
-      <div class="info-grid">
-        <div>
-          <div class="info-item-label">提出方式</div>
-          <div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;">${methodBadges || "-"}</div>
-        </div>
-        <div>
-          <div class="info-item-label">適用テンプレート</div>
-          <div class="info-item-value">${template ? escapeHtml(template.name) : "未設定"}</div>
-        </div>
-      </div>
-      <div class="form-hint" style="margin-top:8px;">※GreenSite/Buildee等へは接続していません。あくまで提出先の形式に合わせたデータ準備の表示です。</div>
-
-      <div class="divider"></div>
-
-      <div class="section-title" style="margin-bottom:10px;">提出準備状況</div>
-      <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
-        <div style="font-size:28px;font-weight:700;color:${stats.isComplete ? "var(--color-success)" : "var(--color-primary)"};">${stats.percent}<span style="font-size:15px;">%</span></div>
-        <div style="flex:1;min-width:260px;">
-          <div class="progress-track" style="height:10px;"><div class="progress-fill ${stats.isComplete ? "complete" : ""}" style="width:${stats.percent}%"></div></div>
-          <div style="margin-top:8px;display:flex;gap:18px;flex-wrap:wrap;font-size:13px;">
-            <span class="text-sub">${stats.fulfilledCount} / ${stats.totalItems}件</span>
-            <span class="text-sub">${stats.missingCount > 0 ? `<b style="color:var(--color-danger);">あと${stats.missingCount}件です</b>` : `<b style="color:var(--color-success);">すべて揃っています</b>`}</span>
-          </div>
-        </div>
-        <div style="display:flex;gap:10px;">
-          <button class="btn btn-secondary btn-lg" data-action="open-request-modal" data-site="${site.id}" ${stats.missingWorkerItems.length === 0 ? "disabled" : ""}>${icon("send")}不足資料を依頼する</button>
-          <a class="btn btn-primary btn-lg" href="#/sites/${site.id}/generate">${icon("archive")}提出資料を準備する</a>
-        </div>
-      </div>
-
-      ${
-        stats.missingCount > 0
-          ? `<div class="divider"></div>
-      <div class="check-group-title" style="margin-bottom:8px;">対応が必要</div>
-      <div class="shortage-list" style="margin-top:0;">
-        ${[...stats.missingCompanyItems, ...stats.missingWorkerItems]
-          .map((item) => {
-            const name = item.type === "company" ? item.name : `${item.workerName} / ${item.certName}`;
-            return `<div class="attention-row"><span class="attn-mark">！</span>${escapeHtml(name)}</div>`;
-          })
-          .join("")}
-      </div>`
-          : ""
-      }
+      <div>${siteStatusBadge(site.status)}</div>
     </div>
 
-    <div class="two-col">
-      <div class="stack">
-        <div class="card card-pad">
-          <div class="section-title">作業員</div>
-          ${workerBlocks || `<div class="empty-state">配置予定の作業員がいません</div>`}
+    <div class="card" style="margin-bottom:14px;">
+      <div class="section-band">現場基本情報</div>
+      <table class="info-table">
+        <tr><th>現場名</th><td>${escapeHtml(site.name)}</td></tr>
+        <tr><th>元請会社</th><td>${escapeHtml(Store.getClientName(site.clientId))}</td></tr>
+        <tr><th>提出期限</th><td>${formatDateJP(site.deadline)}</td></tr>
+        <tr><th>工期</th><td>${formatDateJP(site.periodStart)} ～ ${formatDateJP(site.periodEnd)}</td></tr>
+        <tr><th>配置予定</th><td>${plannedWorkers.length}名</td></tr>
+        <tr><th>提出方式</th><td>${methodBadges || "-"}</td></tr>
+        <tr><th>テンプレート</th><td>${template ? escapeHtml(template.name) : "未設定"}</td></tr>
+      </table>
+      <div class="form-hint" style="padding:0 16px 12px;">※GreenSite/Buildee等へは接続していません。あくまで提出先の形式に合わせたデータ準備の表示です。</div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div class="section-band">提出準備状況</div>
+      <div class="card-pad">
+        <div class="info-grid" style="margin-bottom:12px;">
+          <div><div class="info-item-label">必要項目</div><div class="info-item-value">${stats.totalItems}件</div></div>
+          <div><div class="info-item-label">準備済み</div><div class="info-item-value">${stats.fulfilledCount}件</div></div>
+          <div><div class="info-item-label">不足</div><div class="info-item-value" style="color:${stats.missingCount > 0 ? "var(--color-danger)" : "var(--color-success)"};">${stats.missingCount}件</div></div>
+          <div><div class="info-item-label">準備率</div><div class="info-item-value">${stats.percent}%</div></div>
+        </div>
+        <div class="progress-track" style="height:8px;margin-bottom:14px;"><div class="progress-fill ${stats.isComplete ? "complete" : ""}" style="width:${stats.percent}%"></div></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+          <button class="btn btn-secondary" data-action="open-request-modal" data-site="${site.id}" ${stats.missingWorkerItems.length === 0 ? "disabled" : ""}>${icon("send")}不足資料をまとめて依頼</button>
+          <a class="btn btn-primary" href="#/sites/${site.id}/generate">${icon("archive")}提出資料を準備する</a>
         </div>
       </div>
-      <div class="stack">
-        <div class="card card-pad">
-          <div class="section-title">会社書類</div>
-          ${companyRows}
-        </div>
+    </div>
+
+    ${
+      needsAttentionRows.length > 0
+        ? `<div class="card" style="margin-bottom:14px;">
+      <div class="section-band">対応が必要</div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>種別</th><th>対象</th><th>必要資料</th><th>状態</th><th>操作</th></tr></thead>
+          <tbody>
+            ${needsAttentionRows
+              .map(
+                (r) => `
+            <tr>
+              <td>${escapeHtml(r.type === "company" ? "会社" : r.type)}</td>
+              <td>${escapeHtml(r.target)}</td>
+              <td>${escapeHtml(r.name)}</td>
+              <td><span class="cross-icon">！</span> ${escapeHtml(r.statusLabel)}</td>
+              <td>${r.actionHtml}</td>
+            </tr>`
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>`
+        : ""
+    }
+
+    <div class="card">
+      <div class="section-band">作業員別提出状況</div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>氏名</th><th>職種</th><th>必要資格数</th><th>準備済</th><th>不足</th><th>状態</th></tr></thead>
+          <tbody>
+            ${workerSummaryRows || `<tr><td colspan="6"><div class="empty-state">配置予定の作業員がいません</div></td></tr>`}
+          </tbody>
+        </table>
       </div>
     </div>
   `;
@@ -724,7 +688,7 @@ let generatingSiteId = null;
 
 function renderSiteGenerate(siteId) {
   const site = Store.getSite(siteId);
-  if (!site) return renderNotFound("現場が見つかりません", "#/sites", "現場一覧に戻る");
+  if (!site) return renderNotFound("現場が見つかりません", "#/sites", "現場管理に戻る");
   const stats = computeSiteStats(site);
   const client = Store.getClient(site.clientId);
   const clientName = client ? client.name : "提出先";
@@ -762,18 +726,20 @@ function renderSiteGenerate(siteId) {
         ${icon("warnTriangle")}
         <div><b>提出資料が${stats.missingCount}件不足しています。</b><br>すべての書類が揃うと提出資料を準備できます。</div>
       </div>
-      <div class="check-section">
-        <div class="check-group-title">不足している書類</div>
-        <div class="shortage-list" style="margin-top:0;">
-          ${missingList
-            .map((item) => {
-              const name = item.type === "company" ? item.name : `${item.workerName} / ${item.certName}`;
-              return `<div class="attention-row"><span class="attn-mark">！</span>${escapeHtml(name)}</div>`;
-            })
-            .join("")}
-        </div>
+      <div class="table-wrap" style="margin-bottom:14px;">
+        <table class="data-table">
+          <thead><tr><th>不足している書類</th></tr></thead>
+          <tbody>
+            ${missingList
+              .map((item) => {
+                const name = item.type === "company" ? item.name : `${item.workerName} / ${item.certName}`;
+                return `<tr><td><span class="cross-icon">！</span> ${escapeHtml(name)}</td></tr>`;
+              })
+              .join("")}
+          </tbody>
+        </table>
       </div>
-      <button class="btn btn-primary btn-lg btn-block" data-action="open-request-modal" data-site="${site.id}" ${stats.missingWorkerItems.length === 0 ? "disabled" : ""}>${icon("send")}不足資料を依頼する</button>
+      <button class="btn btn-primary btn-block" data-action="open-request-modal" data-site="${site.id}" ${stats.missingWorkerItems.length === 0 ? "disabled" : ""}>${icon("send")}不足資料をまとめて依頼</button>
     `;
   } else {
     const files = generateSubmissionFiles(site);
@@ -782,16 +748,16 @@ function renderSiteGenerate(siteId) {
         <span style="font-size:16px;">✓</span>
         <div><b>提出資料を準備できます。</b><br>必要な書類がすべて揃っています。</div>
       </div>
-      <div class="check-group-title">準備される内容（プレビュー）</div>
+      <div class="section-title">準備される内容（プレビュー）</div>
       <div class="file-list" style="max-width:100%;">
         ${files.map((f) => `<div class="file-list-item">${icon("file")}${escapeHtml(f)}</div>`).join("")}
       </div>
-      <button class="btn btn-primary btn-lg btn-block" data-action="do-generate" data-site="${site.id}">${icon("archive")}この内容で提出資料を準備する</button>
+      <button class="btn btn-primary btn-block" data-action="do-generate" data-site="${site.id}">${icon("archive")}提出資料を準備する</button>
     `;
   }
 
   return `
-    <div class="breadcrumb"><a href="#/sites">現場一覧</a> <span>›</span> <a href="#/sites/${site.id}">${escapeHtml(site.name)}</a> <span>›</span> <span>提出資料生成</span></div>
+    <div class="breadcrumb"><a href="#/sites">現場管理</a> <span>›</span> <a href="#/sites/${site.id}">${escapeHtml(site.name)}</a> <span>›</span> <span>提出資料生成</span></div>
     <div class="page-header">
       <div>
         <div class="page-title">${escapeHtml(clientName)}向け提出資料</div>
@@ -816,7 +782,7 @@ function handleGenerateClick(siteId) {
 }
 
 /* ============================================================
-   画面4: 作業員一覧
+   画面4: 作業員管理
    ============================================================ */
 let workersFilter = { q: "" };
 
