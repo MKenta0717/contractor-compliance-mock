@@ -594,6 +594,12 @@ function renderSiteDetail(siteId) {
     })
     .join("");
 
+  const client = Store.getClient(site.clientId);
+  const template = client ? Store.getTemplate(client.templateId) : null;
+  const methodBadges = (client ? client.submissionMethods : [])
+    .map((m) => `<span class="badge badge-neutral method-badge">${escapeHtml(m)}</span>`)
+    .join("");
+
   return `
     <div class="breadcrumb"><a href="#/sites">現場一覧</a> <span>›</span> <span>${escapeHtml(site.name)}</span></div>
 
@@ -602,7 +608,7 @@ function renderSiteDetail(siteId) {
         <div>
           <div class="page-title">${escapeHtml(site.name)}</div>
           <div class="info-grid" style="margin-top:14px;">
-            <div><div class="info-item-label">元請</div><div class="info-item-value">${escapeHtml(Store.getClientName(site.clientId))}</div></div>
+            <div><div class="info-item-label">提出先（元請）</div><div class="info-item-value">${escapeHtml(Store.getClientName(site.clientId))}</div></div>
             <div><div class="info-item-label">提出期限</div><div class="info-item-value">${formatDateJP(site.deadline)}</div></div>
             <div><div class="info-item-label">工期</div><div class="info-item-value">${formatDateJP(site.periodStart)} 〜 ${formatDateJP(site.periodEnd)}</div></div>
             <div><div class="info-item-label">配置予定</div><div class="info-item-value">${plannedWorkers.length}名</div></div>
@@ -616,12 +622,28 @@ function renderSiteDetail(siteId) {
 
       <div class="divider"></div>
 
+      <div class="info-grid">
+        <div>
+          <div class="info-item-label">提出方式</div>
+          <div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;">${methodBadges || "-"}</div>
+        </div>
+        <div>
+          <div class="info-item-label">適用テンプレート</div>
+          <div class="info-item-value">${template ? escapeHtml(template.name) : "未設定"}</div>
+        </div>
+      </div>
+      <div class="form-hint" style="margin-top:8px;">※GreenSite/Buildee等へは接続していません。あくまで提出先の形式に合わせたデータ準備の表示です。</div>
+
+      <div class="divider"></div>
+
       <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
         <div style="font-size:38px;font-weight:800;color:${stats.isComplete ? "var(--color-success)" : "var(--color-primary)"};">${stats.percent}<span style="font-size:18px;">%</span></div>
-        <div style="flex:1;min-width:200px;">
+        <div style="flex:1;min-width:260px;">
           <div class="progress-track" style="height:14px;"><div class="progress-fill ${stats.isComplete ? "complete" : ""}" style="width:${stats.percent}%"></div></div>
-          <div style="margin-top:6px;font-size:13px;" class="${stats.missingCount > 0 ? "text-danger" : "text-success"}">
-            ${stats.missingCount > 0 ? `不足${stats.missingCount}件（全${stats.totalItems}件中 ${stats.fulfilledCount}件が準備済み）` : `全${stats.totalItems}件の書類が揃っています`}
+          <div style="margin-top:8px;display:flex;gap:18px;flex-wrap:wrap;font-size:13px;">
+            <span class="text-sub">必要項目 <b style="color:var(--color-text);">${stats.totalItems}件</b></span>
+            <span class="text-sub">準備済み <b style="color:var(--color-success);">${stats.fulfilledCount}件</b></span>
+            <span class="text-sub">不足 <b style="color:${stats.missingCount > 0 ? "var(--color-danger)" : "var(--color-success)"};">${stats.missingCount}件</b></span>
           </div>
         </div>
         <div style="display:flex;gap:10px;">
@@ -661,6 +683,9 @@ function renderSiteGenerate(siteId) {
   const site = Store.getSite(siteId);
   if (!site) return renderNotFound("現場が見つかりません", "#/sites", "現場一覧に戻る");
   const stats = computeSiteStats(site);
+  const client = Store.getClient(site.clientId);
+  const clientName = client ? client.name : "提出先";
+  const methodText = client ? client.submissionMethods.join("＋") : "-";
 
   let body = "";
 
@@ -681,7 +706,7 @@ function renderSiteGenerate(siteId) {
         <div class="file-list">
           ${files.map((f) => `<div class="file-list-item">${icon("file")}${escapeHtml(f)}</div>`).join("")}
         </div>
-        <div class="form-hint" style="margin-bottom:20px;">※モック環境のため実際のファイルはダウンロードされません。実際のサービスではここからダウンロード、またはGreenSite/Buildeeへの提出に進めます。</div>
+        <div class="form-hint" style="margin-bottom:20px;">※モック環境のため実際のファイルはダウンロードされません。実際のサービスでは、ここで準備したデータをもとに${escapeHtml(methodText)}への提出作業（入力・アップロード）を効率化します。自動送信は行いません。</div>
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
           <a class="btn btn-secondary" href="#/sites/${site.id}">現場詳細に戻る</a>
           <a class="btn btn-primary" href="#/submissions">提出資料一覧を見る</a>
@@ -724,8 +749,8 @@ function renderSiteGenerate(siteId) {
     <div class="breadcrumb"><a href="#/sites">現場一覧</a> <span>›</span> <a href="#/sites/${site.id}">${escapeHtml(site.name)}</a> <span>›</span> <span>提出資料生成</span></div>
     <div class="page-header">
       <div>
-        <div class="page-title">提出資料生成</div>
-        <div class="page-subtitle">${escapeHtml(site.name)}　提出準備状況：${stats.fulfilledCount} / ${stats.totalItems}件</div>
+        <div class="page-title">${escapeHtml(clientName)}向け提出資料</div>
+        <div class="page-subtitle">${escapeHtml(site.name)}　提出方式：${escapeHtml(methodText)}　提出準備状況：${stats.fulfilledCount} / ${stats.totalItems}件</div>
       </div>
     </div>
     <div class="card card-pad" style="max-width:680px;">
