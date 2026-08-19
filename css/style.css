@@ -97,6 +97,37 @@ img {
   display: block;
 }
 
+/* ============ 文字折り返しの安全策 ============
+   氏名・会社名・見出し・ステータス等、意味のない1文字単位の折り返しを禁止する箇所。
+   説明文（page-subtitle / form-hint / activity-text 等）はここに含めず、通常の折り返しを許可する。 */
+.cell-name,
+.cell-sub,
+.page-title,
+.modal-title,
+.nav-item,
+.nav-group-label,
+.topbar-company,
+.info-table th,
+th,
+.data-table td,
+.section-title,
+.section-band,
+.today-check-label,
+.today-check-value,
+.action-text-title,
+.settings-row-title,
+.empty-state,
+.breadcrumb,
+.mrc-title,
+.mrc-subtitle,
+.mrc-label,
+.mrc-value,
+.mrc-stat-label,
+.mrc-status {
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+
 /* ============ App Shell ============ */
 
 .app-shell {
@@ -509,7 +540,7 @@ img {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 4px 10px;
 }
 
 .section-band .section-band-hint {
@@ -760,11 +791,13 @@ table.data-table {
 .cell-name {
   font-weight: 700;
   color: var(--color-text);
+  white-space: nowrap;
 }
 
 .cell-sub {
   font-size: 11.5px;
   color: var(--color-text-sub);
+  white-space: nowrap;
 }
 
 .priority-tag {
@@ -776,6 +809,123 @@ table.data-table {
   border-radius: 3px;
   padding: 1px 6px;
   margin-right: 6px;
+}
+
+/* ============ モバイル行カード（600px以下でdata-tableの代わりに表示） ============
+   6列以上（または折り返しが崩れやすい）業務テーブルを、1レコード＝1カードの
+   縦型レイアウトに変換するための共通コンポーネント。PC側のtable.data-tableは
+   そのまま残し、.responsive-table 内でCSSにより表示を出し分ける。 */
+
+.responsive-table {
+  width: 100%;
+}
+
+.mobile-list {
+  display: none;
+}
+
+.mobile-row-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.mobile-row-card:last-child {
+  margin-bottom: 0;
+}
+
+.mobile-row-card[data-action="navigate"] {
+  cursor: pointer;
+}
+
+.mrc-title {
+  font-size: 14.5px;
+  font-weight: 700;
+}
+
+.mrc-subtitle {
+  font-size: 12px;
+  color: var(--color-text-sub);
+  margin-top: 2px;
+}
+
+.mrc-body {
+  margin-top: 8px;
+}
+
+.mrc-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 12.5px;
+}
+
+.mrc-row + .mrc-row {
+  border-top: 1px solid var(--color-neutral-100);
+}
+
+.mrc-label {
+  color: var(--color-text-sub);
+  flex-shrink: 0;
+}
+
+.mrc-value {
+  font-weight: 700;
+  color: var(--color-text);
+  text-align: right;
+}
+
+.mrc-stats {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-neutral-100);
+}
+
+.mrc-stat {
+  flex: 1;
+  text-align: center;
+}
+
+.mrc-stat-num {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.mrc-stat-label {
+  display: block;
+  font-size: 10.5px;
+  margin-top: 2px;
+}
+
+.mrc-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-neutral-100);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.mrc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.mrc-actions .btn {
+  flex: 1;
+  min-width: 130px;
 }
 
 /* ============ Filters ============ */
@@ -1368,6 +1518,96 @@ textarea {
   }
   .info-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ---- タブレット（601〜860px）：表はそのまま維持し、必要幅を確保して横スクロールさせる ---- */
+@media (min-width: 601px) and (max-width: 860px) {
+  table.data-table {
+    min-width: 720px;
+  }
+}
+
+/* ---- スマートフォン（600px以下）：6列以上の業務テーブルはモバイル行カードに切り替える ---- */
+@media (max-width: 600px) {
+  .main-content {
+    padding: 12px 10px 32px;
+  }
+
+  .responsive-table .table-wrap {
+    display: none;
+  }
+  .responsive-table .mobile-list {
+    display: block;
+  }
+
+  /* ヘッダー：会社名を省略表示にし、ユーザー名テキストは非表示にして詰め込みを防ぐ */
+  .topbar {
+    padding: 0 10px;
+  }
+  .topbar-right {
+    gap: 8px;
+  }
+  .topbar-company {
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #topbarUserName {
+    display: none;
+  }
+
+  /* フィルター：横並びに詰め込まず縦に100%幅で並べる */
+  .filter-bar,
+  .filter-bar-left {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .filter-bar .input,
+  .filter-bar .select,
+  .filter-bar-left .input,
+  .filter-bar-left .select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .page-header .btn {
+    width: 100%;
+  }
+
+  /* 見出し帯：タイトルと補足文が並びきらない場合は補足文を次の行に落とす */
+  .section-band {
+    flex-wrap: wrap;
+  }
+  .section-band .section-band-hint {
+    flex: 1 1 100%;
+  }
+
+  /* ボタン：タップしやすいよう最低40px確保 */
+  .btn:not(.btn-sm) {
+    min-height: 40px;
+  }
+
+  /* モーダル：左右余白を詰め、フッターのボタンは縦積みにする */
+  .modal-overlay {
+    padding: 10px;
+  }
+  .modal-box {
+    max-height: calc(100vh - 20px);
+  }
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .modal-footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .modal-footer .btn {
+    width: 100%;
   }
 }
 

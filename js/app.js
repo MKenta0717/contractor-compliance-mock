@@ -123,6 +123,24 @@ function initialOf(name) {
 }
 
 /* ============================================================
+   モバイル行カード（600px以下でtable.data-tableの代わりに表示する共通部品）
+   ============================================================ */
+function mrcRow(label, valueHtml) {
+  return `<div class="mrc-row"><span class="mrc-label">${escapeHtml(label)}</span><span class="mrc-value">${valueHtml}</span></div>`;
+}
+
+function mrcStats(items) {
+  // items: [[num, label], ...]
+  return `<div class="mrc-stats">${items
+    .map(([num, label]) => `<div class="mrc-stat"><span class="mrc-stat-num">${num}</span><span class="mrc-stat-label">${escapeHtml(label)}</span></div>`)
+    .join("")}</div>`;
+}
+
+function mobileEmptyState(text) {
+  return `<div class="empty-state">${escapeHtml(text)}</div>`;
+}
+
+/* ============================================================
    トースト通知
    ============================================================ */
 function showToast(message, type) {
@@ -346,32 +364,56 @@ function renderDashboard() {
 
     <div class="card" style="margin-bottom:14px;">
       <div class="section-band">対応が必要な現場</div>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr><th>現場名</th><th>元請</th><th>提出期限</th><th>準備率</th><th>不足</th><th>状態</th></tr>
-          </thead>
-          <tbody>
-            ${
-              sortedSites.length === 0
-                ? `<tr><td colspan="6"><div class="empty-state">対応が必要な現場はありません</div></td></tr>`
-                : sortedSites
-                    .map((site, idx) => {
-                      const stats = computeSiteStats(site);
-                      return `
-                    <tr class="row-clickable" data-action="navigate" data-href="#/sites/${site.id}">
-                      <td class="cell-name">${idx === 0 ? `<span class="priority-tag">優先</span>` : ""}${escapeHtml(site.name)}</td>
-                      <td>${escapeHtml(Store.getClientName(site.clientId))}</td>
-                      <td>${formatDateJP(site.deadline)}</td>
-                      <td>${stats.percent}%</td>
-                      <td>${stats.missingCount > 0 ? `<span class="text-danger" style="font-weight:700;">${stats.missingCount}件</span>` : "0件"}</td>
-                      <td>${siteStatusBadge(site.status)}</td>
-                    </tr>`;
-                    })
-                    .join("")
-            }
-          </tbody>
-        </table>
+      <div class="responsive-table">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>現場名</th><th>元請</th><th>提出期限</th><th>準備率</th><th>不足</th><th>状態</th></tr>
+            </thead>
+            <tbody>
+              ${
+                sortedSites.length === 0
+                  ? `<tr><td colspan="6"><div class="empty-state">対応が必要な現場はありません</div></td></tr>`
+                  : sortedSites
+                      .map((site, idx) => {
+                        const stats = computeSiteStats(site);
+                        return `
+                      <tr class="row-clickable" data-action="navigate" data-href="#/sites/${site.id}">
+                        <td class="cell-name">${idx === 0 ? `<span class="priority-tag">優先</span>` : ""}${escapeHtml(site.name)}</td>
+                        <td>${escapeHtml(Store.getClientName(site.clientId))}</td>
+                        <td>${formatDateJP(site.deadline)}</td>
+                        <td>${stats.percent}%</td>
+                        <td>${stats.missingCount > 0 ? `<span class="text-danger" style="font-weight:700;">${stats.missingCount}件</span>` : "0件"}</td>
+                        <td>${siteStatusBadge(site.status)}</td>
+                      </tr>`;
+                      })
+                      .join("")
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="mobile-list">
+          ${
+            sortedSites.length === 0
+              ? mobileEmptyState("対応が必要な現場はありません")
+              : sortedSites
+                  .map((site, idx) => {
+                    const stats = computeSiteStats(site);
+                    return `
+                  <div class="mobile-row-card" data-action="navigate" data-href="#/sites/${site.id}">
+                    <div class="mrc-title">${idx === 0 ? `<span class="priority-tag">優先</span>` : ""}${escapeHtml(site.name)}</div>
+                    <div class="mrc-subtitle">${escapeHtml(Store.getClientName(site.clientId))}</div>
+                    <div class="mrc-body">
+                      ${mrcRow("提出期限", formatDateJP(site.deadline))}
+                      ${mrcRow("準備率", `${stats.percent}%`)}
+                      ${mrcRow("不足", stats.missingCount > 0 ? `<span class="text-danger">${stats.missingCount}件</span>` : "0件")}
+                    </div>
+                    <div class="mrc-status">${siteStatusBadge(site.status)}</div>
+                  </div>`;
+                  })
+                  .join("")
+          }
+        </div>
       </div>
     </div>
 
@@ -492,18 +534,45 @@ function renderSitesList() {
     </div>
 
     <div class="card">
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>現場名</th><th>元請会社</th><th>提出期限</th><th>配置予定</th>
-              <th>必要書類数</th><th>不足数</th><th>準備率</th><th>ステータス</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows || `<tr><td colspan="8"><div class="empty-state">条件に一致する現場がありません</div></td></tr>`}
-          </tbody>
-        </table>
+      <div class="responsive-table">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>現場名</th><th>元請会社</th><th>提出期限</th><th>配置予定</th>
+                <th>必要書類数</th><th>不足数</th><th>準備率</th><th>ステータス</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows || `<tr><td colspan="8"><div class="empty-state">条件に一致する現場がありません</div></td></tr>`}
+            </tbody>
+          </table>
+        </div>
+        <div class="mobile-list">
+          ${
+            filtered.length === 0
+              ? mobileEmptyState("条件に一致する現場がありません")
+              : filtered
+                  .map((site) => {
+                    const stats = computeSiteStats(site);
+                    return `
+                  <div class="mobile-row-card">
+                    <div class="mrc-title">${escapeHtml(site.name)}</div>
+                    <div class="mrc-subtitle">${escapeHtml(Store.getClientName(site.clientId))}</div>
+                    <div class="mrc-body">
+                      ${mrcRow("提出期限", formatDateJP(site.deadline))}
+                      ${mrcRow("準備率", `${stats.percent}%`)}
+                      ${mrcRow("不足", stats.missingCount > 0 ? `<span class="text-danger">${stats.missingCount}件</span>` : `<span class="text-success">0件</span>`)}
+                    </div>
+                    <div class="mrc-status">${siteStatusBadge(site.status)}</div>
+                    <div class="mrc-actions">
+                      <a class="btn btn-secondary" href="#/sites/${site.id}">詳細を見る</a>
+                    </div>
+                  </div>`;
+                  })
+                  .join("")
+          }
+        </div>
       </div>
     </div>
   `;
@@ -555,45 +624,74 @@ function renderSiteDetail(siteId) {
       target: "-",
       name: item.name,
       statusLabel: "未アップロード",
-      actionHtml: `<a class="btn btn-secondary btn-sm" href="#/company">確認</a>`,
+      actionHtml: `<a class="btn btn-secondary" href="#/company">確認</a>`,
     })),
     ...stats.missingWorkerItems.map((item) => {
       const requested = item.requested;
       const statusLabel = item.status === "overdue" ? "期限切れ" : "未登録";
       const actionHtml = requested
         ? `<span class="badge badge-neutral">依頼済み</span>`
-        : `<button class="btn btn-secondary btn-sm" data-action="open-request-modal" data-site="${site.id}" data-worker="${item.workerId}" data-cert="${item.certTypeId}">依頼</button>`;
+        : `<button class="btn btn-secondary" data-action="open-request-modal" data-site="${site.id}" data-worker="${item.workerId}" data-cert="${item.certTypeId}">依頼</button>`;
       return { type: "作業員", target: item.workerName, name: item.certName, statusLabel, actionHtml };
     }),
   ];
 
   // ■ 作業員別提出状況：作業員1人につき1行で必要資格数・準備済・不足を集計する
-  const workerSummaryRows = plannedWorkers
-    .map((worker) => {
-      const reqs = site.workerRequirements.filter((r) => r.workerId === worker.id);
-      let fulfilledCount = 0;
-      let missingCount = 0;
-      reqs.forEach((r) => {
-        const { status } = getRequirementStatus(worker, r.certTypeId);
-        if (status === "missing" || status === "overdue") missingCount++;
-        else fulfilledCount++;
-      });
-      const state =
-        missingCount > 0
-          ? `<span class="badge badge-danger">要対応</span>`
-          : fulfilledCount === reqs.length
-          ? `<span class="badge badge-success">完了</span>`
-          : `<span class="badge badge-warning">確認</span>`;
-      return `
+  const workerSummaries = plannedWorkers.map((worker) => {
+    const reqs = site.workerRequirements.filter((r) => r.workerId === worker.id);
+    let fulfilledCount = 0;
+    let missingCount = 0;
+    reqs.forEach((r) => {
+      const { status } = getRequirementStatus(worker, r.certTypeId);
+      if (status === "missing" || status === "overdue") missingCount++;
+      else fulfilledCount++;
+    });
+    const stateKind = missingCount > 0 ? "danger" : fulfilledCount === reqs.length ? "success" : "warning";
+    return { worker, reqCount: reqs.length, fulfilledCount, missingCount, stateKind };
+  });
+
+  const STATE_BADGE = {
+    danger: `<span class="badge badge-danger">要対応</span>`,
+    success: `<span class="badge badge-success">完了</span>`,
+    warning: `<span class="badge badge-warning">確認</span>`,
+  };
+  const STATE_MARK = {
+    danger: `<span class="cross-icon">！</span> 要対応`,
+    success: `<span class="check-icon">✓</span> 完了`,
+    warning: `<span class="warn-icon">△</span> 確認`,
+  };
+
+  const workerSummaryRows = workerSummaries
+    .map(
+      ({ worker, reqCount, fulfilledCount, missingCount, stateKind }) => `
       <tr class="row-clickable" data-action="navigate" data-href="#/workers/${worker.id}">
         <td class="cell-name">${escapeHtml(worker.name)}</td>
         <td>${escapeHtml(worker.jobType)}</td>
-        <td>${reqs.length}</td>
+        <td>${reqCount}</td>
         <td>${fulfilledCount}</td>
         <td>${missingCount > 0 ? `<span class="text-danger" style="font-weight:700;">${missingCount}</span>` : "0"}</td>
-        <td>${state}</td>
-      </tr>`;
-    })
+        <td>${STATE_BADGE[stateKind]}</td>
+      </tr>`
+    )
+    .join("");
+
+  const workerSummaryCards = workerSummaries
+    .map(
+      ({ worker, reqCount, fulfilledCount, missingCount, stateKind }) => `
+      <div class="mobile-row-card">
+        <div class="mrc-title">${escapeHtml(worker.name)}</div>
+        <div class="mrc-subtitle">${escapeHtml(worker.jobType)}</div>
+        ${mrcStats([
+          [reqCount, "必要資格"],
+          [fulfilledCount, "準備済み"],
+          [missingCount, "不足"],
+        ])}
+        <div class="mrc-status">${STATE_MARK[stateKind]}</div>
+        <div class="mrc-actions">
+          <a class="btn btn-secondary" href="#/workers/${worker.id}">詳細を見る</a>
+        </div>
+      </div>`
+    )
     .join("");
 
   return `
@@ -640,24 +738,41 @@ function renderSiteDetail(siteId) {
       needsAttentionRows.length > 0
         ? `<div class="card" style="margin-bottom:14px;">
       <div class="section-band">対応が必要</div>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead><tr><th>種別</th><th>対象</th><th>必要資料</th><th>状態</th><th>操作</th></tr></thead>
-          <tbody>
-            ${needsAttentionRows
-              .map(
-                (r) => `
-            <tr>
-              <td>${escapeHtml(r.type === "company" ? "会社" : r.type)}</td>
-              <td>${escapeHtml(r.target)}</td>
-              <td>${escapeHtml(r.name)}</td>
-              <td><span class="cross-icon">！</span> ${escapeHtml(r.statusLabel)}</td>
-              <td>${r.actionHtml}</td>
-            </tr>`
-              )
-              .join("")}
-          </tbody>
-        </table>
+      <div class="responsive-table">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>種別</th><th>対象</th><th>必要資料</th><th>状態</th><th>操作</th></tr></thead>
+            <tbody>
+              ${needsAttentionRows
+                .map(
+                  (r) => `
+              <tr>
+                <td>${escapeHtml(r.type === "company" ? "会社" : r.type)}</td>
+                <td>${escapeHtml(r.target)}</td>
+                <td>${escapeHtml(r.name)}</td>
+                <td><span class="cross-icon">！</span> ${escapeHtml(r.statusLabel)}</td>
+                <td>${r.actionHtml}</td>
+              </tr>`
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+        <div class="mobile-list">
+          ${needsAttentionRows
+            .map(
+              (r) => `
+          <div class="mobile-row-card">
+            <div class="mrc-body">
+              ${mrcRow(r.type === "company" ? "対象" : "作業員", escapeHtml(r.type === "company" ? "会社" : r.target))}
+              ${mrcRow("必要資料", escapeHtml(r.name))}
+            </div>
+            <div class="mrc-status"><span class="cross-icon">！</span> ${escapeHtml(r.statusLabel)}</div>
+            <div class="mrc-actions">${r.actionHtml}</div>
+          </div>`
+            )
+            .join("")}
+        </div>
       </div>
     </div>`
         : ""
@@ -665,13 +780,18 @@ function renderSiteDetail(siteId) {
 
     <div class="card">
       <div class="section-band">作業員別提出状況</div>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead><tr><th>氏名</th><th>職種</th><th>必要資格数</th><th>準備済</th><th>不足</th><th>状態</th></tr></thead>
-          <tbody>
-            ${workerSummaryRows || `<tr><td colspan="6"><div class="empty-state">配置予定の作業員がいません</div></td></tr>`}
-          </tbody>
-        </table>
+      <div class="responsive-table">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>氏名</th><th>職種</th><th>必要資格数</th><th>準備済</th><th>不足</th><th>状態</th></tr></thead>
+            <tbody>
+              ${workerSummaryRows || `<tr><td colspan="6"><div class="empty-state">配置予定の作業員がいません</div></td></tr>`}
+            </tbody>
+          </table>
+        </div>
+        <div class="mobile-list">
+          ${workerSummaryCards || mobileEmptyState("配置予定の作業員がいません")}
+        </div>
       </div>
     </div>
   `;
@@ -797,17 +917,21 @@ function renderWorkersList() {
     return true;
   });
 
-  const rows = filtered
-    .map((w) => {
-      let urgent = 0,
-        soon = 0;
-      w.certs.forEach((c) => {
-        const certType = Store.getCertType(c.certTypeId);
-        const bucket = getAttentionBucket(c, certType);
-        if (bucket === "urgent") urgent++;
-        else if (bucket === "soon") soon++;
-      });
-      return `
+  const workerSummaries = filtered.map((w) => {
+    let urgent = 0,
+      soon = 0;
+    w.certs.forEach((c) => {
+      const certType = Store.getCertType(c.certTypeId);
+      const bucket = getAttentionBucket(c, certType);
+      if (bucket === "urgent") urgent++;
+      else if (bucket === "soon") soon++;
+    });
+    return { w, urgent, soon };
+  });
+
+  const rows = workerSummaries
+    .map(
+      ({ w, urgent, soon }) => `
       <tr class="row-clickable" data-action="navigate" data-href="#/workers/${w.id}">
         <td>
           <div style="display:flex;align-items:center;gap:12px;">
@@ -830,8 +954,30 @@ function renderWorkersList() {
             <button class="btn btn-secondary btn-sm" data-action="open-add-cert" data-worker="${w.id}">資格証を登録</button>
           </div>
         </td>
-      </tr>`;
-    })
+      </tr>`
+    )
+    .join("");
+
+  const workerCards = workerSummaries
+    .map(
+      ({ w, urgent, soon }) => `
+      <div class="mobile-row-card">
+        <div class="mrc-title">${escapeHtml(w.name)}</div>
+        <div class="mrc-subtitle">${escapeHtml(w.jobType)}</div>
+        <div class="mrc-body">
+          ${mrcRow("所属", escapeHtml(w.affiliation))}
+        </div>
+        ${mrcStats([
+          [`${w.certs.length}件`, "保有資格"],
+          [urgent > 0 ? `<span class="text-danger">${urgent}件</span>` : "-", "要対応"],
+          [soon > 0 ? `<span class="text-warning">${soon}件</span>` : "-", "要確認"],
+        ])}
+        <div class="mrc-actions">
+          <a class="btn btn-secondary" href="#/workers/${w.id}">詳細を見る</a>
+          <button class="btn btn-secondary" data-action="open-add-cert" data-worker="${w.id}">資格証を登録</button>
+        </div>
+      </div>`
+    )
     .join("");
 
   return `
@@ -848,13 +994,18 @@ function renderWorkersList() {
     </div>
 
     <div class="card">
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr><th>氏名</th><th>所属</th><th>職種</th><th>保有資格数</th><th>要対応</th><th>要確認</th><th>最終更新日</th><th>操作</th></tr>
-          </thead>
-          <tbody>${rows || `<tr><td colspan="8"><div class="empty-state">条件に一致する作業員がいません</div></td></tr>`}</tbody>
-        </table>
+      <div class="responsive-table">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>氏名</th><th>所属</th><th>職種</th><th>保有資格数</th><th>要対応</th><th>要確認</th><th>最終更新日</th><th>操作</th></tr>
+            </thead>
+            <tbody>${rows || `<tr><td colspan="8"><div class="empty-state">条件に一致する作業員がいません</div></td></tr>`}</tbody>
+          </table>
+        </div>
+        <div class="mobile-list">
+          ${workerCards || mobileEmptyState("条件に一致する作業員がいません")}
+        </div>
       </div>
     </div>
   `;
@@ -902,6 +1053,27 @@ function renderWorkerDetail(workerId) {
     })
     .join("");
 
+  const certCards = worker.certs
+    .map((cert) => {
+      const certType = Store.getCertType(cert.certTypeId);
+      const info = getCertDeadlineInfo(cert, certType);
+      const deadlineLabel = DEADLINE_TYPE_FIELD_LABEL[certType.deadlineType];
+      const deadlineValue = cert.deadlineDate ? formatDateJP(cert.deadlineDate) : "なし";
+      return `
+      <div class="mobile-row-card">
+        <div class="mrc-title">${escapeHtml(Store.getCertTypeName(cert.certTypeId))}</div>
+        <div class="mrc-body">
+          ${mrcRow("取得日", formatDateJP(cert.obtainedDate))}
+          ${mrcRow(deadlineLabel, deadlineValue)}
+        </div>
+        <div class="mrc-status">${certDeadlineBadge(certType, info)}</div>
+        <div class="mrc-actions">
+          <button class="btn btn-secondary" data-action="not-implemented" data-msg="モック版では資格証の編集はできません">編集</button>
+        </div>
+      </div>`;
+    })
+    .join("");
+
   const siteRows = involvedSites
     .map(
       (s) => `
@@ -911,6 +1083,20 @@ function renderWorkerDetail(workerId) {
       <td>${formatDateJP(s.deadline)}</td>
       <td>${siteStatusBadge(s.status)}</td>
     </tr>`
+    )
+    .join("");
+
+  const siteCards = involvedSites
+    .map(
+      (s) => `
+    <div class="mobile-row-card" data-action="navigate" data-href="#/sites/${s.id}">
+      <div class="mrc-title">${escapeHtml(s.name)}</div>
+      <div class="mrc-subtitle">${escapeHtml(Store.getClientName(s.clientId))}</div>
+      <div class="mrc-body">
+        ${mrcRow("提出期限", formatDateJP(s.deadline))}
+      </div>
+      <div class="mrc-status">${siteStatusBadge(s.status)}</div>
+    </div>`
     )
     .join("");
 
@@ -937,21 +1123,31 @@ function renderWorkerDetail(workerId) {
         <span>資格一覧（${worker.certs.length}件）</span>
         <button class="btn btn-primary btn-sm" data-action="open-add-cert" data-worker="${worker.id}">資格証を登録</button>
       </div>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead><tr><th>資格名</th><th>取得日</th><th>期限区分</th><th>期限/確認日</th><th>ステータス</th><th>操作</th></tr></thead>
-          <tbody>${certRows || `<tr><td colspan="6"><div class="empty-state">登録済みの資格がありません</div></td></tr>`}</tbody>
-        </table>
+      <div class="responsive-table">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>資格名</th><th>取得日</th><th>期限区分</th><th>期限/確認日</th><th>ステータス</th><th>操作</th></tr></thead>
+            <tbody>${certRows || `<tr><td colspan="6"><div class="empty-state">登録済みの資格がありません</div></td></tr>`}</tbody>
+          </table>
+        </div>
+        <div class="mobile-list">
+          ${certCards || mobileEmptyState("登録済みの資格がありません")}
+        </div>
       </div>
     </div>
 
     <div class="card">
       <div class="section-band">配置予定の現場</div>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead><tr><th>現場名</th><th>元請</th><th>提出期限</th><th>ステータス</th></tr></thead>
-          <tbody>${siteRows || `<tr><td colspan="4"><div class="empty-state">配置予定の現場はありません</div></td></tr>`}</tbody>
-        </table>
+      <div class="responsive-table">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>現場名</th><th>元請</th><th>提出期限</th><th>ステータス</th></tr></thead>
+            <tbody>${siteRows || `<tr><td colspan="4"><div class="empty-state">配置予定の現場はありません</div></td></tr>`}</tbody>
+          </table>
+        </div>
+        <div class="mobile-list">
+          ${siteCards || mobileEmptyState("配置予定の現場はありません")}
+        </div>
       </div>
     </div>
   `;
@@ -1355,6 +1551,25 @@ function renderCertifications() {
     })
     .join("");
 
+  const certListCards = filtered
+    .map(({ worker, cert, certType }) => {
+      const info = getCertDeadlineInfo(cert, certType);
+      return `
+    <div class="mobile-row-card">
+      <div class="mrc-title">${escapeHtml(worker.name)}</div>
+      <div class="mrc-subtitle">${escapeHtml(Store.getCertTypeName(cert.certTypeId))}</div>
+      <div class="mrc-body">
+        ${mrcRow("取得日", formatDateJP(cert.obtainedDate))}
+        ${mrcRow("期限区分", DEADLINE_TYPE_FIELD_LABEL[certType.deadlineType])}
+      </div>
+      <div class="mrc-status">${certDeadlineBadge(certType, info)}</div>
+      <div class="mrc-actions">
+        <a class="btn btn-secondary" href="#/workers/${worker.id}">作業員詳細を見る</a>
+      </div>
+    </div>`;
+    })
+    .join("");
+
   return `
     <div class="page-header">
       <div>
@@ -1374,11 +1589,16 @@ function renderCertifications() {
     </div>
 
     <div class="card">
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead><tr><th>氏名</th><th>資格</th><th>取得日</th><th>期限区分</th><th>期限</th><th>状態</th></tr></thead>
-          <tbody>${tableRows || `<tr><td colspan="6"><div class="empty-state">条件に一致する資格がありません</div></td></tr>`}</tbody>
-        </table>
+      <div class="responsive-table">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>氏名</th><th>資格</th><th>取得日</th><th>期限区分</th><th>期限</th><th>状態</th></tr></thead>
+            <tbody>${tableRows || `<tr><td colspan="6"><div class="empty-state">条件に一致する資格がありません</div></td></tr>`}</tbody>
+          </table>
+        </div>
+        <div class="mobile-list">
+          ${certListCards || mobileEmptyState("条件に一致する資格がありません")}
+        </div>
       </div>
     </div>
   `;
@@ -1408,12 +1628,16 @@ function bindCertificationsFilters() {
    提出資料一覧
    ============================================================ */
 function renderSubmissions() {
-  const rows = Store.state.sites
-    .map((site) => {
-      const stats = computeSiteStats(site);
-      const client = Store.getClient(site.clientId);
-      const methodText = client ? (client.submissionMethods || []).join("／") : "-";
-      return `
+  const submissionSummaries = Store.state.sites.map((site) => {
+    const stats = computeSiteStats(site);
+    const client = Store.getClient(site.clientId);
+    const methodText = client ? (client.submissionMethods || []).join("／") : "-";
+    return { site, stats, methodText };
+  });
+
+  const rows = submissionSummaries
+    .map(
+      ({ site, stats, methodText }) => `
       <tr>
         <td class="cell-name">${escapeHtml(site.name)}</td>
         <td>${escapeHtml(Store.getClientName(site.clientId))}</td>
@@ -1422,8 +1646,27 @@ function renderSubmissions() {
         <td>${site.submissionGenerated ? `<span class="badge badge-success">生成済み</span>` : `<span class="badge badge-neutral">未生成</span>`}</td>
         <td>${site.submissionGenerated ? formatDateTimeJP(site.submissionGeneratedAt) : "-"}</td>
         <td><a class="btn btn-secondary btn-sm" href="#/sites/${site.id}/generate">開く</a></td>
-      </tr>`;
-    })
+      </tr>`
+    )
+    .join("");
+
+  const submissionCards = submissionSummaries
+    .map(
+      ({ site, stats, methodText }) => `
+      <div class="mobile-row-card">
+        <div class="mrc-title">${escapeHtml(site.name)}</div>
+        <div class="mrc-subtitle">${escapeHtml(Store.getClientName(site.clientId))}</div>
+        <div class="mrc-body">
+          ${mrcRow("提出方式", escapeHtml(methodText))}
+          ${mrcRow("準備率", `${stats.percent}%（${stats.fulfilledCount}/${stats.totalItems}）`)}
+          ${mrcRow("生成日", site.submissionGenerated ? formatDateTimeJP(site.submissionGeneratedAt) : "-")}
+        </div>
+        <div class="mrc-status">${site.submissionGenerated ? `<span class="badge badge-success">生成済み</span>` : `<span class="badge badge-neutral">未生成</span>`}</div>
+        <div class="mrc-actions">
+          <a class="btn btn-secondary" href="#/sites/${site.id}/generate">提出資料を確認</a>
+        </div>
+      </div>`
+    )
     .join("");
 
   return `
@@ -1434,11 +1677,16 @@ function renderSubmissions() {
       </div>
     </div>
     <div class="card">
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead><tr><th>現場名</th><th>元請</th><th>提出方式</th><th>準備率</th><th>生成状態</th><th>生成日</th><th>操作</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
+      <div class="responsive-table">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>現場名</th><th>元請</th><th>提出方式</th><th>準備率</th><th>生成状態</th><th>生成日</th><th>操作</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+        <div class="mobile-list">
+          ${submissionCards || mobileEmptyState("現場がありません")}
+        </div>
       </div>
     </div>
   `;
@@ -1450,10 +1698,14 @@ function renderSubmissions() {
 function renderCompany() {
   const c = Store.state.company;
   const licLifecycleDays = daysUntil(c.licenseExpiry);
-  const docRows = c.documents
-    .map((doc) => {
-      const usageCount = Store.state.sites.filter((s) => s.requiredCompanyDocIds.includes(doc.id)).length;
-      return `
+  const docSummaries = c.documents.map((doc) => ({
+    doc,
+    usageCount: Store.state.sites.filter((s) => s.requiredCompanyDocIds.includes(doc.id)).length,
+  }));
+
+  const docRows = docSummaries
+    .map(
+      ({ doc, usageCount }) => `
       <tr>
         <td class="cell-name">${escapeHtml(doc.name)}</td>
         <td>${doc.fulfilled ? `<span class="check-icon">✓</span> 準備済み` : `<span class="cross-icon">！</span> 未アップロード`}</td>
@@ -1466,8 +1718,29 @@ function renderCompany() {
               : `<button class="btn btn-primary btn-sm" data-action="upload-company-doc" data-doc="${doc.id}">アップロード</button>`
           }
         </td>
-      </tr>`;
-    })
+      </tr>`
+    )
+    .join("");
+
+  const docCards = docSummaries
+    .map(
+      ({ doc, usageCount }) => `
+      <div class="mobile-row-card">
+        <div class="mrc-title">${escapeHtml(doc.name)}</div>
+        <div class="mrc-body">
+          ${mrcRow("最終更新日", doc.fulfilled ? formatDateJP(doc.updatedAt) : "-")}
+          ${mrcRow("利用現場数", `${usageCount}現場`)}
+        </div>
+        <div class="mrc-status">${doc.fulfilled ? `<span class="check-icon">✓</span> 準備済み` : `<span class="cross-icon">！</span> 未アップロード`}</div>
+        <div class="mrc-actions">
+          ${
+            doc.fulfilled
+              ? `<button class="btn btn-secondary" data-action="upload-company-doc" data-doc="${doc.id}">再登録</button>`
+              : `<button class="btn btn-primary" data-action="upload-company-doc" data-doc="${doc.id}">アップロード</button>`
+          }
+        </div>
+      </div>`
+    )
     .join("");
 
   return `
@@ -1512,11 +1785,16 @@ function renderCompany() {
 
     <div class="card">
       <div class="section-band">共通提出書類<span class="section-band-hint">一度登録すると対象のすべての現場に自動で反映されます</span></div>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead><tr><th>書類名</th><th>状態</th><th>最終更新日</th><th>利用現場数</th><th>操作</th></tr></thead>
-          <tbody>${docRows}</tbody>
-        </table>
+      <div class="responsive-table">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>書類名</th><th>状態</th><th>最終更新日</th><th>利用現場数</th><th>操作</th></tr></thead>
+            <tbody>${docRows}</tbody>
+          </table>
+        </div>
+        <div class="mobile-list">
+          ${docCards || mobileEmptyState("登録済みの書類がありません")}
+        </div>
       </div>
     </div>
   `;
@@ -1607,22 +1885,43 @@ function renderSettings() {
    元請・提出設定（一覧表示のみ。編集機能はモック対象外）
    ============================================================ */
 function renderClients() {
-  const rows = (Store.state.clients || [])
-    .map((client) => {
-      const template = Store.getTemplate(client.templateId);
-      const siteCount = Store.state.sites.filter((s) => s.clientId === client.id).length;
-      const methodBadges = (client.submissionMethods || [])
-        .map((m) => `<span class="badge badge-neutral method-badge">${escapeHtml(m)}</span>`)
-        .join(" ");
-      return `
+  const clientSummaries = (Store.state.clients || []).map((client) => ({
+    client,
+    template: Store.getTemplate(client.templateId),
+    siteCount: Store.state.sites.filter((s) => s.clientId === client.id).length,
+    methodBadges: (client.submissionMethods || [])
+      .map((m) => `<span class="badge badge-neutral method-badge">${escapeHtml(m)}</span>`)
+      .join(" "),
+  }));
+
+  const rows = clientSummaries
+    .map(
+      ({ client, template, siteCount, methodBadges }) => `
       <tr>
         <td class="cell-name">${escapeHtml(client.name)}</td>
         <td>${methodBadges}</td>
         <td>${template ? escapeHtml(template.name) : "-"}</td>
         <td>${siteCount}現場</td>
         <td><button class="btn btn-secondary btn-sm" data-action="not-implemented" data-msg="モック版では元請情報の編集はできません">編集</button></td>
-      </tr>`;
-    })
+      </tr>`
+    )
+    .join("");
+
+  const clientCards = clientSummaries
+    .map(
+      ({ client, template, siteCount, methodBadges }) => `
+      <div class="mobile-row-card">
+        <div class="mrc-title">${escapeHtml(client.name)}</div>
+        <div class="mrc-body">
+          ${mrcRow("提出方式", methodBadges || "-")}
+          ${mrcRow("適用テンプレート", template ? escapeHtml(template.name) : "-")}
+          ${mrcRow("対象現場数", `${siteCount}現場`)}
+        </div>
+        <div class="mrc-actions">
+          <button class="btn btn-secondary" data-action="not-implemented" data-msg="モック版では元請情報の編集はできません">編集</button>
+        </div>
+      </div>`
+    )
     .join("");
 
   return `
@@ -1634,11 +1933,16 @@ function renderClients() {
       <button class="btn btn-secondary" data-action="not-implemented" data-msg="モック版では新規元請の登録はできません">新規元請登録</button>
     </div>
     <div class="card">
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead><tr><th>元請会社</th><th>提出方式</th><th>適用テンプレート</th><th>対象現場数</th><th>操作</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
+      <div class="responsive-table">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>元請会社</th><th>提出方式</th><th>適用テンプレート</th><th>対象現場数</th><th>操作</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+        <div class="mobile-list">
+          ${clientCards || mobileEmptyState("登録済みの元請がありません")}
+        </div>
       </div>
     </div>
     <div class="form-hint" style="margin-top:10px;">※GreenSite/Buildee等へは接続していません。提出方式・テンプレートの表示と、提出資料生成時の出し分けに利用します。</div>
