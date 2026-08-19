@@ -196,6 +196,7 @@ const Demo = {
       el.dataset.worker === DEMO_WORKER_ID &&
       el.dataset.cert === DEMO_CERT_TYPE_ID
     ) {
+      recordDemoEvent("step_1_completed");
       this.currentStep = 2;
       this.renderChrome();
       setTimeout(() => this.updateSpotlight(), 60);
@@ -213,6 +214,9 @@ const Demo = {
     this.currentStep = 3;
     recordDemoEvent("step_2_completed");
     this.renderChrome();
+    // このあとrenderRequestSuccess()がモーダル内容を#demoOpenWorkerBtnへ差し替えるため、
+    // それが描画された後にスポットライトを更新し、Step2の古い吹き出しが残らないようにする
+    setTimeout(() => this.updateSpotlight(), 60);
   },
 
   // 資格証の登録が完了した直後（app.js #aiConfirmBtn ハンドラーから呼ばれる）
@@ -287,8 +291,8 @@ const Demo = {
           };
         }
         return {
-          selector: `[data-demo="attention-${DEMO_WORKER_ID}-${DEMO_CERT_TYPE_ID}"]`,
-          text: "この現場では、山田太郎さんの資格証が不足しています。必要なものだけをすぐ確認できます。",
+          selector: `[data-action="open-request-modal"][data-worker="${DEMO_WORKER_ID}"][data-cert="${DEMO_CERT_TYPE_ID}"]`,
+          text: "山田太郎さんの高所作業車運転技能講習が不足しています。「依頼」を押して、本人へ資格証の提出をお願いしてみましょう。",
         };
       case 2:
         if (modalOpen) {
@@ -530,9 +534,10 @@ const Demo = {
     });
   },
 
-  teardown() {
+  // ガイドUI（スポットライト・進捗バー・サイドバー無効化・作業員フレーム）だけを終了する。
+  // completed / startedAt / useIntent / priceIntent 等、完了アンケートに必要な状態はここでは触らない。
+  endGuide() {
     this.active = false;
-    this.currentStep = 0;
     this.workerFrameOpen = false;
     document.body.classList.remove("demo-active");
     this.hideSpotlight();
@@ -543,6 +548,16 @@ const Demo = {
     window.closeDemoWorkerFrame = null;
   },
 
+  // デモセッション自体を完全に終える（デモ終了ボタン、または完了画面から離脱する場合）
+  teardown() {
+    this.endGuide();
+    this.currentStep = 0;
+    this.completed = false;
+    this.startedAt = null;
+    this.useIntent = null;
+    this.priceIntent = null;
+  },
+
   /* ============================================================
      完了・価格検証UI
      ============================================================ */
@@ -551,7 +566,9 @@ const Demo = {
     const durationSeconds = this.startedAt ? Math.round((Date.now() - this.startedAt) / 1000) : null;
     this._durationSeconds = durationSeconds;
     recordDemoEvent("demo_completed", { demoDurationSeconds: durationSeconds });
-    this.hideSpotlight();
+    // ガイドとしては完了：スポットライト・進捗バーを消し、サイドバーの無効化も解除する。
+    // completed/durationSeconds等の完了アンケート用の状態はendGuide()では変更されない。
+    this.endGuide();
     this.showCompletionModal();
   },
 
@@ -571,11 +588,25 @@ const Demo = {
         <div class="demo-recap-item"><span class="check-icon">✓</span>元請別の提出準備</div>
       </div>
       <div class="divider"></div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="btn btn-primary btn-block" id="demoRestartBtn">もう一度体験する</button>
+        <button class="btn btn-secondary btn-block" id="demoFreeAfterBtn">自由に画面を見る</button>
+      </div>
+      <div class="divider"></div>
       <div id="demoFeedbackArea"></div>
       `,
       ""
     );
     openModal(html, { wide: true });
+    // アンケートは任意。回答しなくても最初からこの2つでいつでも抜けられる。
+    qs("#demoRestartBtn").addEventListener("click", () => {
+      closeModal();
+      this.start();
+    });
+    qs("#demoFreeAfterBtn").addEventListener("click", () => {
+      closeModal();
+      this.teardown();
+    });
     this.renderUseIntentQuestion();
   },
 
@@ -630,7 +661,7 @@ const Demo = {
         ${this.choiceButton("priceIntent", "high", "少し高い")}
         ${this.choiceButton("priceIntent", "no", "必要ない")}
       </div>
-      <div id="demoFinalActions"></div>
+      <div class="form-hint" id="demoFeedbackThanks" style="text-align:center;margin-top:10px;"></div>
     `;
     qs("#demoPriceArea").innerHTML = html;
     qsa("#demoPriceIntentChoices .demo-choice").forEach((btn) => {
@@ -645,28 +676,9 @@ const Demo = {
           priceIntent: this.priceIntent,
           demoDurationSeconds: this._durationSeconds,
         });
-        this.renderFinalActions();
-        const body = qs(".modal-body");
-        if (body) body.scrollTop = body.scrollHeight;
+        const thanks = qs("#demoFeedbackThanks");
+        if (thanks) thanks.textContent = "ご回答ありがとうございました。";
       });
-    });
-  },
-
-  renderFinalActions() {
-    qs("#demoFinalActions").innerHTML = `
-      <div class="divider"></div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <button class="btn btn-primary btn-block" id="demoRestartBtn">もう一度体験する</button>
-        <button class="btn btn-secondary btn-block" id="demoFreeAfterBtn">自由に画面を見る</button>
-      </div>
-    `;
-    qs("#demoRestartBtn").addEventListener("click", () => {
-      closeModal();
-      this.start();
-    });
-    qs("#demoFreeAfterBtn").addEventListener("click", () => {
-      closeModal();
-      this.teardown();
     });
   },
 };
