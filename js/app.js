@@ -1411,16 +1411,17 @@ function renderSubmissions() {
   const rows = Store.state.sites
     .map((site) => {
       const stats = computeSiteStats(site);
+      const client = Store.getClient(site.clientId);
+      const methodText = client ? client.submissionMethods.join("／") : "-";
       return `
       <tr>
-        <td>
-          <div class="cell-name">${escapeHtml(site.name)}</div>
-          <div class="cell-sub">${escapeHtml(Store.getClientName(site.clientId))}</div>
-        </td>
+        <td class="cell-name">${escapeHtml(site.name)}</td>
+        <td>${escapeHtml(Store.getClientName(site.clientId))}</td>
+        <td>${escapeHtml(methodText)}</td>
         <td>${stats.percent}%（${stats.fulfilledCount}/${stats.totalItems}）</td>
-        <td>${site.submissionGenerated ? `<span class="badge badge-success">生成済み</span><div class="cell-sub" style="margin-top:4px;">${formatDateTimeJP(site.submissionGeneratedAt)}</div>` : `<span class="badge badge-neutral">未生成</span>`}</td>
-        <td>${site.submissionFiles ? site.submissionFiles.length + "件" : "-"}</td>
-        <td><a class="btn btn-secondary btn-sm" href="#/sites/${site.id}/generate">生成画面を開く</a></td>
+        <td>${site.submissionGenerated ? `<span class="badge badge-success">生成済み</span>` : `<span class="badge badge-neutral">未生成</span>`}</td>
+        <td>${site.submissionGenerated ? formatDateTimeJP(site.submissionGeneratedAt) : "-"}</td>
+        <td><a class="btn btn-secondary btn-sm" href="#/sites/${site.id}/generate">開く</a></td>
       </tr>`;
     })
     .join("");
@@ -1428,14 +1429,14 @@ function renderSubmissions() {
   return `
     <div class="page-header">
       <div>
-        <div class="page-title">提出資料</div>
-        <div class="page-subtitle">現場ごとの提出資料の生成状況を確認できます</div>
+        <div class="page-title">提出資料管理</div>
+        <div class="page-subtitle">現場ごとの提出資料の準備・生成状況を確認できます</div>
       </div>
     </div>
     <div class="card">
       <div class="table-wrap">
         <table class="data-table">
-          <thead><tr><th>現場名</th><th>準備状況</th><th>生成状況</th><th>ファイル数</th><th>操作</th></tr></thead>
+          <thead><tr><th>現場名</th><th>元請</th><th>提出方式</th><th>準備率</th><th>生成状態</th><th>生成日</th><th>操作</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
@@ -1450,25 +1451,23 @@ function renderCompany() {
   const c = Store.state.company;
   const licLifecycleDays = daysUntil(c.licenseExpiry);
   const docRows = c.documents
-    .map(
-      (doc) => `
-    <div class="check-row ${doc.fulfilled ? "fulfilled" : "missing"}">
-      <div class="check-row-left">
-        <span class="${doc.fulfilled ? "check-icon" : "cross-icon"}">${doc.fulfilled ? "✓" : "！"}</span>
-        <div class="check-row-text">
-          <div class="check-row-name">${escapeHtml(doc.name)}</div>
-          <div class="check-row-sub">${doc.fulfilled ? `更新日：${formatDateJP(doc.updatedAt)}` : "未アップロード"}</div>
-        </div>
-      </div>
-      <div class="check-row-right">
-        ${
-          doc.fulfilled
-            ? `<button class="btn btn-secondary btn-sm" data-action="upload-company-doc" data-doc="${doc.id}">再アップロード</button>`
-            : `<button class="btn btn-primary btn-sm" data-action="upload-company-doc" data-doc="${doc.id}">${icon("upload")}アップロードする</button>`
-        }
-      </div>
-    </div>`
-    )
+    .map((doc) => {
+      const usageCount = Store.state.sites.filter((s) => s.requiredCompanyDocIds.includes(doc.id)).length;
+      return `
+      <tr>
+        <td class="cell-name">${escapeHtml(doc.name)}</td>
+        <td>${doc.fulfilled ? `<span class="check-icon">✓</span> 準備済み` : `<span class="cross-icon">！</span> 未アップロード`}</td>
+        <td>${doc.fulfilled ? formatDateJP(doc.updatedAt) : "-"}</td>
+        <td>${usageCount}現場</td>
+        <td>
+          ${
+            doc.fulfilled
+              ? `<button class="btn btn-secondary btn-sm" data-action="upload-company-doc" data-doc="${doc.id}">再登録</button>`
+              : `<button class="btn btn-primary btn-sm" data-action="upload-company-doc" data-doc="${doc.id}">アップロード</button>`
+          }
+        </td>
+      </tr>`;
+    })
     .join("");
 
   return `
@@ -1477,53 +1476,47 @@ function renderCompany() {
         <div class="page-title">会社情報</div>
         <div class="page-subtitle">現場提出でくり返し使う会社の基本情報を一度だけ登録しておきます</div>
       </div>
-      <button class="btn btn-secondary" data-action="not-implemented" data-msg="モック版では会社情報の編集はできません">編集する</button>
+      <button class="btn btn-secondary" data-action="not-implemented" data-msg="モック版では会社情報の編集はできません">編集</button>
     </div>
 
-    <div class="two-col">
-      <div class="stack">
-        <div class="card card-pad">
-          <div class="section-title">基本情報</div>
-          <div class="info-grid">
-            <div><div class="info-item-label">会社名</div><div class="info-item-value">${escapeHtml(c.name)}</div></div>
-            <div><div class="info-item-label">代表者</div><div class="info-item-value">${escapeHtml(c.representative)}</div></div>
-            <div><div class="info-item-label">郵便番号</div><div class="info-item-value">〒${escapeHtml(c.postal)}</div></div>
-            <div><div class="info-item-label">電話番号</div><div class="info-item-value">${escapeHtml(c.phone)}</div></div>
-            <div style="grid-column:1/-1;"><div class="info-item-label">住所</div><div class="info-item-value">${escapeHtml(c.address)}</div></div>
-          </div>
-        </div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="section-band">基本情報</div>
+      <table class="info-table">
+        <tr><th>会社名</th><td>${escapeHtml(c.name)}</td></tr>
+        <tr><th>代表者</th><td>${escapeHtml(c.representative)}</td></tr>
+        <tr><th>所在地</th><td>〒${escapeHtml(c.postal)} ${escapeHtml(c.address)}</td></tr>
+        <tr><th>電話番号</th><td>${escapeHtml(c.phone)}</td></tr>
+      </table>
+    </div>
 
-        <div class="card card-pad">
-          <div class="section-title">建設業許可</div>
-          <div class="info-grid">
-            <div><div class="info-item-label">許可番号</div><div class="info-item-value">${escapeHtml(c.licenseNumber)}</div></div>
-            <div><div class="info-item-label">許可業種</div><div class="info-item-value">${c.licenseTypes.map(escapeHtml).join("、")}</div></div>
-            <div>
-              <div class="info-item-label">許可期限</div>
-              <div class="info-item-value">${formatDateJP(c.licenseExpiry)}
-                ${licLifecycleDays !== null && licLifecycleDays <= 45 ? `<span class="badge ${licLifecycleDays < 0 ? "badge-danger" : "badge-warning"}" style="margin-left:8px;">${licLifecycleDays < 0 ? "期限超過" : `残り${licLifecycleDays}日`}</span>` : ""}
-              </div>
-            </div>
-          </div>
-        </div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="section-band">建設業許可</div>
+      <table class="info-table">
+        <tr><th>許可番号</th><td>${escapeHtml(c.licenseNumber)}</td></tr>
+        <tr><th>許可業種</th><td>${c.licenseTypes.map(escapeHtml).join("、")}</td></tr>
+        <tr><th>許可期限</th><td>${formatDateJP(c.licenseExpiry)}
+          ${licLifecycleDays !== null && licLifecycleDays <= 45 ? `<span class="badge ${licLifecycleDays < 0 ? "badge-danger" : "badge-warning"}" style="margin-left:8px;">${licLifecycleDays < 0 ? "期限超過" : `残り${licLifecycleDays}日`}</span>` : ""}
+        </td></tr>
+      </table>
+    </div>
 
-        <div class="card card-pad">
-          <div class="section-title">保険関連情報</div>
-          <div class="info-grid">
-            <div><div class="info-item-label">労災保険</div><div class="info-item-value">${escapeHtml(c.insurance.rousai)}</div></div>
-            <div><div class="info-item-label">健康保険</div><div class="info-item-value">${escapeHtml(c.insurance.kenkohoken)}</div></div>
-            <div><div class="info-item-label">厚生年金</div><div class="info-item-value">${escapeHtml(c.insurance.kosei)}</div></div>
-            <div><div class="info-item-label">雇用保険</div><div class="info-item-value">${escapeHtml(c.insurance.koyo)}</div></div>
-          </div>
-        </div>
-      </div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="section-band">社会保険・労働保険</div>
+      <table class="info-table">
+        <tr><th>労災保険</th><td>${escapeHtml(c.insurance.rousai)}</td></tr>
+        <tr><th>健康保険</th><td>${escapeHtml(c.insurance.kenkohoken)}</td></tr>
+        <tr><th>厚生年金</th><td>${escapeHtml(c.insurance.kosei)}</td></tr>
+        <tr><th>雇用保険</th><td>${escapeHtml(c.insurance.koyo)}</td></tr>
+      </table>
+    </div>
 
-      <div class="stack">
-        <div class="card card-pad">
-          <div class="section-title">共通提出書類</div>
-          <div class="form-hint" style="margin-bottom:12px;">ここで一度アップロードすると、対象のすべての現場に自動で反映されます。</div>
-          ${docRows}
-        </div>
+    <div class="card">
+      <div class="section-band">共通提出書類<span class="section-band-hint">一度登録すると対象のすべての現場に自動で反映されます</span></div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>書類名</th><th>状態</th><th>最終更新日</th><th>利用現場数</th><th>操作</th></tr></thead>
+          <tbody>${docRows}</tbody>
+        </table>
       </div>
     </div>
   `;
