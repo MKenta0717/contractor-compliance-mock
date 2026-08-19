@@ -12,13 +12,13 @@
 </head>
 <body>
 
-<div class="demo-banner">これはクリック体験用の<b>モック画面</b>です。実際のアップロード・送信は行われません。</div>
+<div class="demo-banner">デモ画面です（クリック体験用のモック）。実際の送信は行われません。</div>
 
 <div class="mobile-page">
   <div class="mobile-container">
     <div class="mobile-header">
       <div class="mobile-header-company" id="hdrCompany">株式会社三和設備</div>
-      <div class="mobile-header-title">資格証の提出依頼</div>
+      <div class="mobile-header-title">資格証の提出</div>
     </div>
     <div class="mobile-body" id="mobileBody">
       <!-- JSで描画 -->
@@ -126,15 +126,13 @@ function render() {
       ${selectedFile ? (selectedFile.isImage ? `<img src="${selectedFile.dataUrl}" alt="選択した画像">` : `<div style="text-align:center;">${ICON_FILE}<div style="margin-top:8px;font-size:12.5px;">${escapeHtml(selectedFile.name)}</div></div>`) : `<div style="text-align:center;color:var(--color-neutral-400);">${ICON_FOLDER}<div style="margin-top:8px;">まだファイルが選択されていません</div></div>`}
     </div>
 
-    <div class="mobile-btn-row" style="margin-bottom:20px;">
-      <button class="btn btn-secondary" id="btnCamera">${ICON_CAMERA}写真を撮る</button>
-      <button class="btn btn-secondary" id="btnFile">${ICON_FOLDER}ファイルを選択</button>
-    </div>
+    <button class="btn btn-primary btn-lg btn-block" id="btnCamera" style="margin-bottom:10px;">${ICON_CAMERA}写真を撮る</button>
+    <button class="btn btn-secondary btn-block" id="btnFile" style="margin-bottom:20px;">${ICON_FOLDER}ファイルを選択</button>
 
     <input type="file" id="fileCameraInput" accept="image/*" capture="environment" style="display:none;">
     <input type="file" id="fileGeneralInput" accept="image/*,.pdf" style="display:none;">
 
-    <button class="btn btn-primary btn-lg btn-block" id="btnSubmit" ${selectedFile ? "" : "disabled"}>提出する</button>
+    <button class="btn btn-primary btn-lg btn-block" id="btnSubmit" ${selectedFile ? "" : "disabled"}>この内容で提出する</button>
     <div class="form-hint" style="text-align:center;margin-top:10px;">ログイン不要でご提出いただけます</div>
   `;
 
