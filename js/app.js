@@ -1579,28 +1579,69 @@ function renderSettings() {
         <div class="card card-pad">
           <div class="section-title">デモ操作</div>
           <div class="form-hint" style="margin-bottom:14px;">このモックのデータをすべて初期状態に戻します。別の担当者にデモを見せる前などにご利用ください。</div>
-          <button class="btn btn-danger-outline" data-action="reset-demo">デモデータをリセットする</button>
+          <button class="btn btn-danger-outline" data-action="reset-demo">デモデータをリセット</button>
         </div>
       </div>
 
       <div class="stack">
-        <div class="plan-card">
-          <div class="plan-name">${escapeHtml(m.planName)}</div>
-          <div class="plan-price">¥${m.planPrice.toLocaleString()}<span>/月（税別）</span></div>
-          <div class="plan-desc">
-            ・作業員 50名まで<br>
-            ・現場 無制限<br>
-            ・資格証AI登録<br>
-            ・提出準備チェック<br>
-            ・提出パック生成<br>
-            ・不足資料依頼<br>
-            <span style="opacity:0.75;">次回更新日：2026/09/19</span>
+        <div class="plan-box">
+          <div class="section-band">現在のプラン</div>
+          <table class="info-table">
+            <tr><th>プラン</th><td>${escapeHtml(m.planName)}</td></tr>
+            <tr><th>月額</th><td>${m.planPrice.toLocaleString()}円（税別）</td></tr>
+            <tr><th>作業員数</th><td>50名まで</td></tr>
+            <tr><th>現場数</th><td>無制限</td></tr>
+            <tr><th>次回更新日</th><td>2026/09/19</td></tr>
+          </table>
+          <div class="form-hint" style="padding:0 16px 14px;">※モック上の価格仮説です。本番の課金ロジックは実装していません。</div>
+          <div style="padding:0 16px 16px;">
+            <button class="btn btn-secondary" data-action="not-implemented" data-msg="モック版ではプラン変更はできません">プラン変更</button>
           </div>
-          <div class="form-hint" style="color:#cbd5e1;margin-top:10px;">※モック上の価格仮説です。本番の課金ロジックは実装していません。</div>
-          <button class="btn btn-secondary btn-block" style="margin-top:18px;" data-action="not-implemented" data-msg="モック版ではプラン変更はできません">プランを変更する</button>
         </div>
       </div>
     </div>
+  `;
+}
+
+/* ============================================================
+   元請・提出設定（一覧表示のみ。編集機能はモック対象外）
+   ============================================================ */
+function renderClients() {
+  const rows = Store.state.clients
+    .map((client) => {
+      const template = Store.getTemplate(client.templateId);
+      const siteCount = Store.state.sites.filter((s) => s.clientId === client.id).length;
+      const methodBadges = client.submissionMethods
+        .map((m) => `<span class="badge badge-neutral method-badge">${escapeHtml(m)}</span>`)
+        .join(" ");
+      return `
+      <tr>
+        <td class="cell-name">${escapeHtml(client.name)}</td>
+        <td>${methodBadges}</td>
+        <td>${template ? escapeHtml(template.name) : "-"}</td>
+        <td>${siteCount}現場</td>
+        <td><button class="btn btn-secondary btn-sm" data-action="not-implemented" data-msg="モック版では元請情報の編集はできません">編集</button></td>
+      </tr>`;
+    })
+    .join("");
+
+  return `
+    <div class="page-header">
+      <div>
+        <div class="page-title">元請・提出設定</div>
+        <div class="page-subtitle">元請ごとの提出方式・適用テンプレートを確認できます</div>
+      </div>
+      <button class="btn btn-secondary" data-action="not-implemented" data-msg="モック版では新規元請の登録はできません">新規元請登録</button>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>元請会社</th><th>提出方式</th><th>適用テンプレート</th><th>対象現場数</th><th>操作</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="form-hint" style="margin-top:10px;">※GreenSite/Buildee等へは接続していません。提出方式・テンプレートの表示と、提出資料生成時の出し分けに利用します。</div>
   `;
 }
 
