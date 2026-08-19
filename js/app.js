@@ -837,10 +837,10 @@ function renderWorkersList() {
   return `
     <div class="page-header">
       <div>
-        <div class="page-title">作業員一覧</div>
+        <div class="page-title">作業員管理</div>
         <div class="page-subtitle">全${Store.state.workers.length}名の作業員・保有資格を管理しています</div>
       </div>
-      <button class="btn btn-secondary" data-action="not-implemented" data-msg="モック版では新規作業員の登録はできません">${icon("plus")}作業員を登録する</button>
+      <button class="btn btn-secondary" data-action="not-implemented" data-msg="モック版では新規作業員の登録はできません">新規作業員登録</button>
     </div>
 
     <div class="filter-bar">
@@ -880,82 +880,78 @@ function bindWorkersListFilters() {
    ============================================================ */
 function renderWorkerDetail(workerId) {
   const worker = Store.getWorker(workerId);
-  if (!worker) return renderNotFound("作業員が見つかりません", "#/workers", "作業員一覧に戻る");
+  if (!worker) return renderNotFound("作業員が見つかりません", "#/workers", "作業員管理に戻る");
 
   const involvedSites = Store.state.sites.filter((s) => s.plannedWorkerIds.includes(workerId));
 
-  const certCards = worker.certs
+  const certRows = worker.certs
     .map((cert) => {
       const certType = Store.getCertType(cert.certTypeId);
       const info = getCertDeadlineInfo(cert, certType);
       const deadlineLabel = DEADLINE_TYPE_FIELD_LABEL[certType.deadlineType];
       const deadlineValue = cert.deadlineDate ? formatDateJP(cert.deadlineDate) : "なし";
       return `
-      <div class="card card-pad" style="margin-bottom:12px;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;">
-          <div style="display:flex;gap:14px;">
-            <div class="upload-preview-thumb" style="width:64px;height:64px;color:var(--color-neutral-400);">${icon("certs")}</div>
-            <div>
-              <div style="font-size:15.5px;font-weight:700;">${escapeHtml(Store.getCertTypeName(cert.certTypeId))}</div>
-              <div class="info-grid" style="margin-top:10px;grid-template-columns:auto auto;column-gap:28px;">
-                <div><div class="info-item-label">取得日</div><div class="info-item-value">${formatDateJP(cert.obtainedDate)}</div></div>
-                <div><div class="info-item-label">${deadlineLabel}</div><div class="info-item-value">${deadlineValue}</div></div>
-                <div><div class="info-item-label">発行機関</div><div class="info-item-value">${escapeHtml(cert.issuer)}</div></div>
-                <div><div class="info-item-label">修了証番号</div><div class="info-item-value">${escapeHtml(cert.certNumber)}</div></div>
-              </div>
-            </div>
-          </div>
-          <div>${certDeadlineBadge(certType, info)}</div>
-        </div>
-      </div>`;
+      <tr>
+        <td class="cell-name">${escapeHtml(Store.getCertTypeName(cert.certTypeId))}</td>
+        <td>${formatDateJP(cert.obtainedDate)}</td>
+        <td>${deadlineLabel}</td>
+        <td>${deadlineValue}</td>
+        <td>${certDeadlineBadge(certType, info)}</td>
+        <td><button class="btn btn-secondary btn-sm" data-action="not-implemented" data-msg="モック版では資格証の編集はできません">編集</button></td>
+      </tr>`;
     })
     .join("");
 
-  return `
-    <div class="breadcrumb"><a href="#/workers">作業員一覧</a> <span>›</span> <span>${escapeHtml(worker.name)}</span></div>
+  const siteRows = involvedSites
+    .map(
+      (s) => `
+    <tr class="row-clickable" data-action="navigate" data-href="#/sites/${s.id}">
+      <td class="cell-name">${escapeHtml(s.name)}</td>
+      <td>${escapeHtml(Store.getClientName(s.clientId))}</td>
+      <td>${formatDateJP(s.deadline)}</td>
+      <td>${siteStatusBadge(s.status)}</td>
+    </tr>`
+    )
+    .join("");
 
-    <div class="card card-pad" style="margin-bottom:20px;">
-      <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;">
-        <div class="avatar-circle lg" style="background:${worker.avatarColor}">${initialOf(worker.name)}</div>
-        <div style="flex:1;min-width:240px;">
-          <div class="page-title">${escapeHtml(worker.name)}</div>
-          <div class="page-subtitle">${escapeHtml(worker.kana)}　${escapeHtml(worker.jobType)}</div>
-        </div>
+  return `
+    <div class="breadcrumb"><a href="#/workers">作業員管理</a> <span>›</span> <span>${escapeHtml(worker.name)}</span></div>
+    <div class="page-header">
+      <div class="page-title">${escapeHtml(worker.name)}</div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div class="section-band">作業員情報</div>
+      <table class="info-table">
+        <tr><th>氏名</th><td>${escapeHtml(worker.name)}（${escapeHtml(worker.kana)}）</td></tr>
+        <tr><th>職種</th><td>${escapeHtml(worker.jobType)}</td></tr>
+        <tr><th>所属</th><td>${escapeHtml(worker.affiliation)}</td></tr>
+        <tr><th>生年月日</th><td>${formatDateJP(worker.birthdate)}</td></tr>
+        <tr><th>電話番号</th><td>${escapeHtml(worker.phone)}</td></tr>
+        <tr><th>メール</th><td>${escapeHtml(worker.email)}</td></tr>
+      </table>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div class="section-band">
+        <span>資格一覧（${worker.certs.length}件）</span>
+        <button class="btn btn-primary btn-sm" data-action="open-add-cert" data-worker="${worker.id}">資格証を登録</button>
       </div>
-      <div class="divider"></div>
-      <div class="info-grid">
-        <div><div class="info-item-label">生年月日</div><div class="info-item-value">${formatDateJP(worker.birthdate)}</div></div>
-        <div><div class="info-item-label">所属</div><div class="info-item-value">${escapeHtml(worker.affiliation)}</div></div>
-        <div><div class="info-item-label">電話番号</div><div class="info-item-value">${escapeHtml(worker.phone)}</div></div>
-        <div><div class="info-item-label">メール</div><div class="info-item-value">${escapeHtml(worker.email)}</div></div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>資格名</th><th>取得日</th><th>期限区分</th><th>期限/確認日</th><th>ステータス</th><th>操作</th></tr></thead>
+          <tbody>${certRows || `<tr><td colspan="6"><div class="empty-state">登録済みの資格がありません</div></td></tr>`}</tbody>
+        </table>
       </div>
     </div>
 
-    <div class="two-col">
-      <div class="stack">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div class="section-title" style="margin-bottom:0;">資格一覧（${worker.certs.length}件）</div>
-          <button class="btn btn-primary" data-action="open-add-cert" data-worker="${worker.id}">${icon("plus")}資格証を登録する</button>
-        </div>
-        <div>${certCards || `<div class="card card-pad"><div class="empty-state">登録済みの資格がありません</div></div>`}</div>
-      </div>
-      <div class="stack">
-        <div class="card card-pad">
-          <div class="section-title">配置予定の現場</div>
-          ${
-            involvedSites.length
-              ? `<ul style="display:flex;flex-direction:column;gap:10px;">
-              ${involvedSites
-                .map(
-                  (s) => `<li><a class="check-row" style="display:flex;text-decoration:none;" href="#/sites/${s.id}">
-                <div class="check-row-text"><div class="check-row-name">${escapeHtml(s.name)}</div><div class="check-row-sub">提出期限：${formatDateJP(s.deadline)}</div></div>
-              </a></li>`
-                )
-                .join("")}
-            </ul>`
-              : `<div class="empty-state" style="padding:20px;">配置予定の現場はありません</div>`
-          }
-        </div>
+    <div class="card">
+      <div class="section-band">配置予定の現場</div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>現場名</th><th>元請</th><th>提出期限</th><th>ステータス</th></tr></thead>
+          <tbody>${siteRows || `<tr><td colspan="4"><div class="empty-state">配置予定の現場はありません</div></td></tr>`}</tbody>
+        </table>
       </div>
     </div>
   `;
@@ -1077,8 +1073,8 @@ function startAILoading(worker, previewSrc) {
     "資格証を登録",
     `<div class="ai-loading">
       <div class="ai-spinner"></div>
-      <div class="ai-loading-text">AIが資格証を読み取っています…</div>
-      <div class="ai-loading-sub">氏名・資格名・有効期限などを自動抽出しています</div>
+      <div class="ai-loading-text">資格証から情報を読み取っています…</div>
+      <div class="ai-loading-sub">氏名・資格名・期限などを自動で抽出しています</div>
     </div>`,
     ""
   );
@@ -1103,8 +1099,8 @@ function renderAIModalReview(worker, extracted, previewSrc, context) {
       : icon("certs");
 
   const noticeText = ctx && ctx.fromSubmission
-    ? `${escapeHtml(worker.name)}さんから提出された資格証です。AIの読み取り結果を確認して登録してください。`
-    : "AIによる読み取り結果です。内容を確認して登録してください。";
+    ? `${escapeHtml(worker.name)}さんから提出された資格証です。内容を確認して登録してください。`
+    : "画像から自動で読み取った内容です。内容を確認して登録してください。";
   const thumbCaption = ctx && ctx.fromSubmission
     ? `提出日時：${formatDateTimeJP(ctx.submittedAt)}`
     : previewSrc === "sample"
@@ -1157,7 +1153,7 @@ function renderAIModalReview(worker, extracted, previewSrc, context) {
     </div>
     `,
     `<button class="btn btn-secondary" data-action="close-modal">キャンセル</button>
-     <button class="btn btn-primary" id="aiConfirmBtn">内容を確認して登録する</button>`
+     <button class="btn btn-primary" id="aiConfirmBtn">登録</button>`
   );
   openModal(html);
 
@@ -1271,7 +1267,7 @@ function openRequestModal(siteId, workerId, certTypeId) {
     </div>
     `,
     `<button class="btn btn-secondary" data-action="close-modal">キャンセル</button>
-     <button class="btn btn-primary" id="reqSendBtn">${icon("send")}依頼を送信する</button>`
+     <button class="btn btn-primary" id="reqSendBtn">${icon("send")}依頼を送信</button>`
   );
   openModal(html, { wide: false });
 
@@ -1352,10 +1348,8 @@ function renderCertifications() {
       </td>
       <td>${escapeHtml(Store.getCertTypeName(cert.certTypeId))}</td>
       <td>${formatDateJP(cert.obtainedDate)}</td>
-      <td>
-        <div class="cell-sub">${DEADLINE_TYPE_FIELD_LABEL[certType.deadlineType]}</div>
-        ${cert.deadlineDate ? formatDateJP(cert.deadlineDate) : "-"}
-      </td>
+      <td>${DEADLINE_TYPE_FIELD_LABEL[certType.deadlineType]}</td>
+      <td>${cert.deadlineDate ? formatDateJP(cert.deadlineDate) : "-"}</td>
       <td>${certDeadlineBadge(certType, info)}</td>
     </tr>`;
     })
@@ -1382,8 +1376,8 @@ function renderCertifications() {
     <div class="card">
       <div class="table-wrap">
         <table class="data-table">
-          <thead><tr><th>氏名</th><th>資格名</th><th>取得日</th><th>期限</th><th>ステータス</th></tr></thead>
-          <tbody>${tableRows || `<tr><td colspan="5"><div class="empty-state">条件に一致する資格がありません</div></td></tr>`}</tbody>
+          <thead><tr><th>氏名</th><th>資格</th><th>取得日</th><th>期限区分</th><th>期限</th><th>状態</th></tr></thead>
+          <tbody>${tableRows || `<tr><td colspan="6"><div class="empty-state">条件に一致する資格がありません</div></td></tr>`}</tbody>
         </table>
       </div>
     </div>
