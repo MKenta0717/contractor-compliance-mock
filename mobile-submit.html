@@ -63,7 +63,14 @@ const ctx = {
   workerId: getParam("workerId", "w1"),
   certTypeId: getParam("certTypeId", "ct2"),
   siteId: getParam("siteId", "s1"),
+  // セルフガイドデモから管理画面に埋め込まれている場合はtrue。
+  // その場合のみ「管理画面へ戻る」ボタンを表示する（単独ページとして開いた場合は不要）。
+  embedded: getParam("embedded") === "1",
 };
+
+// サンプル資格証で体験する用のダミー画像（実ファイル不要でも提出体験ができるようにする）
+const SAMPLE_CERT_IMAGE =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='280'%3E%3Crect width='400' height='280' fill='%23eaf0f3'/%3E%3Crect x='16' y='16' width='368' height='248' fill='none' stroke='%2331546b' stroke-width='3'/%3E%3Ctext x='200' y='120' font-size='20' font-family='sans-serif' font-weight='700' fill='%23243746' text-anchor='middle'%3E高所作業車運転技能講習%3C/text%3E%3Ctext x='200' y='155' font-size='14' font-family='sans-serif' fill='%23626d75' text-anchor='middle'%3E技能講習修了証（サンプル）%3C/text%3E%3Ctext x='200' y='190' font-size='13' font-family='sans-serif' fill='%23626d75' text-anchor='middle'%3E山田 太郎 様%3C/text%3E%3C/svg%3E";
 
 // 管理画面（index.html）と同じlocalStorageキー。中身は store.js の PENDING_SUBMISSIONS_KEY と一致させること。
 const PENDING_SUBMISSIONS_KEY = "teishutsu_mock_pending_submissions_v1";
@@ -127,7 +134,10 @@ function render() {
     </div>
 
     <button class="btn btn-primary btn-lg btn-block" id="btnCamera" style="margin-bottom:10px;">${ICON_CAMERA}写真を撮る</button>
-    <button class="btn btn-secondary btn-block" id="btnFile" style="margin-bottom:20px;">${ICON_FOLDER}ファイルを選択</button>
+    <button class="btn btn-secondary btn-block" id="btnFile" style="margin-bottom:10px;">${ICON_FOLDER}ファイルを選択</button>
+    <div style="text-align:center;margin-bottom:20px;">
+      <button class="link-btn" id="btnSample">写真が手元になくてもOK。サンプル資格証で体験 →</button>
+    </div>
 
     <input type="file" id="fileCameraInput" accept="image/*" capture="environment" style="display:none;">
     <input type="file" id="fileGeneralInput" accept="image/*,.pdf" style="display:none;">
@@ -138,9 +148,15 @@ function render() {
 
   document.getElementById("btnCamera").addEventListener("click", () => document.getElementById("fileCameraInput").click());
   document.getElementById("btnFile").addEventListener("click", () => document.getElementById("fileGeneralInput").click());
+  document.getElementById("btnSample").addEventListener("click", useSampleCert);
   document.getElementById("fileCameraInput").addEventListener("change", onFilePicked);
   document.getElementById("fileGeneralInput").addEventListener("change", onFilePicked);
   document.getElementById("btnSubmit").addEventListener("click", onSubmit);
+}
+
+function useSampleCert() {
+  selectedFile = { dataUrl: SAMPLE_CERT_IMAGE, name: "サンプル資格証.png", isImage: true };
+  render();
 }
 
 function onFilePicked(e) {
@@ -181,9 +197,20 @@ function renderComplete() {
         ${escapeHtml(ctx.cert)}の資格証を受け付けました。<br>
         ${escapeHtml(ctx.company)}の担当者が内容を確認したうえで登録します。
       </div>
-      <div class="form-hint">このタブは閉じていただいて構いません。<br>（モックのため実際のアップロード・通知は行われません）</div>
+      ${
+        ctx.embedded
+          ? `<button class="btn btn-primary btn-block" id="btnBackToAdmin">管理画面へ戻る</button>`
+          : `<div class="form-hint">このタブは閉じていただいて構いません。<br>（モックのため実際のアップロード・通知は行われません）</div>`
+      }
     </div>
   `;
+  if (ctx.embedded) {
+    document.getElementById("btnBackToAdmin").addEventListener("click", () => {
+      if (window.parent && typeof window.parent.closeDemoWorkerFrame === "function") {
+        window.parent.closeDemoWorkerFrame();
+      }
+    });
+  }
 }
 
 render();

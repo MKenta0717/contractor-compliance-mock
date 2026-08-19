@@ -1499,6 +1499,10 @@ function renderRequestSuccess(site, items) {
     `&site=${encodeURIComponent(site.name)}&deadline=${encodeURIComponent(site.deadline)}` +
     `&company=${encodeURIComponent(Store.state.company.name)}` +
     `&workerId=${encodeURIComponent(first.workerId)}&certTypeId=${encodeURIComponent(first.certTypeId)}&siteId=${encodeURIComponent(site.id)}`;
+  const inDemo = typeof Demo !== "undefined" && Demo.active;
+  const demoButtonHtml = inDemo
+    ? `<button class="btn btn-primary" id="demoOpenWorkerBtn">${icon("externalLink")}作業員側の提出を体験</button>`
+    : "";
   const html = modalShell(
     "不足資料を依頼",
     `
@@ -1509,12 +1513,21 @@ function renderRequestSuccess(site, items) {
       <div class="file-list">
         ${items.map((i) => `<div class="file-list-item">${icon("send")}${escapeHtml(i.workerName)} - ${escapeHtml(i.certName)}</div>`).join("")}
       </div>
-      <a class="btn btn-secondary btn-sm" href="${previewUrl}" target="_blank" rel="noopener">${icon("externalLink")}作業員側の受け取り画面をプレビュー</a>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:center;">
+        ${demoButtonHtml}
+        <a class="btn btn-secondary btn-sm" href="${previewUrl}" target="_blank" rel="noopener">${icon("externalLink")}作業員側の受け取り画面をプレビュー</a>
+      </div>
     </div>
     `,
     `<button class="btn btn-primary" data-action="close-modal">閉じる</button>`
   );
   openModal(html);
+  if (inDemo) {
+    qs("#demoOpenWorkerBtn").addEventListener("click", () => {
+      closeModal();
+      Demo.openWorkerFrame(`${previewUrl}&embedded=1`);
+    });
+  }
 }
 
 /* ============================================================
