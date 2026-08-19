@@ -544,7 +544,7 @@ function renderSiteDetail(siteId) {
   const plannedWorkers = site.plannedWorkerIds.map((id) => Store.getWorker(id)).filter(Boolean);
   const client = Store.getClient(site.clientId);
   const template = client ? Store.getTemplate(client.templateId) : null;
-  const methodBadges = (client ? client.submissionMethods : [])
+  const methodBadges = ((client && client.submissionMethods) || [])
     .map((m) => `<span class="badge badge-neutral method-badge">${escapeHtml(m)}</span>`)
     .join(" ");
 
@@ -692,7 +692,7 @@ function renderSiteGenerate(siteId) {
   const stats = computeSiteStats(site);
   const client = Store.getClient(site.clientId);
   const clientName = client ? client.name : "提出先";
-  const methodText = client ? client.submissionMethods.join("＋") : "-";
+  const methodText = client ? (client.submissionMethods || []).join("＋") : "-";
 
   let body = "";
 
@@ -1412,7 +1412,7 @@ function renderSubmissions() {
     .map((site) => {
       const stats = computeSiteStats(site);
       const client = Store.getClient(site.clientId);
-      const methodText = client ? client.submissionMethods.join("／") : "-";
+      const methodText = client ? (client.submissionMethods || []).join("／") : "-";
       return `
       <tr>
         <td class="cell-name">${escapeHtml(site.name)}</td>
@@ -1607,11 +1607,11 @@ function renderSettings() {
    元請・提出設定（一覧表示のみ。編集機能はモック対象外）
    ============================================================ */
 function renderClients() {
-  const rows = Store.state.clients
+  const rows = (Store.state.clients || [])
     .map((client) => {
       const template = Store.getTemplate(client.templateId);
       const siteCount = Store.state.sites.filter((s) => s.clientId === client.id).length;
-      const methodBadges = client.submissionMethods
+      const methodBadges = (client.submissionMethods || [])
         .map((m) => `<span class="badge badge-neutral method-badge">${escapeHtml(m)}</span>`)
         .join(" ");
       return `
