@@ -1557,7 +1557,7 @@ function renderSettings() {
             <button class="toggle-switch on" data-action="toggle-switch"></button>
           </div>
           <div class="settings-row">
-            <div><div class="settings-row-title">期限30日前に通知</div><div class="settings-row-desc">資格の有効期限が近づいたら知らせる</div></div>
+            <div><div class="settings-row-title">期限・再教育の30日前に通知</div><div class="settings-row-desc">資格・教育の確認時期が近づいたら知らせる</div></div>
             <button class="toggle-switch on" data-action="toggle-switch"></button>
           </div>
           <div class="settings-row">
