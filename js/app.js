@@ -507,7 +507,7 @@ function renderSitesList() {
         <div class="page-title">現場一覧</div>
         <div class="page-subtitle">全${Store.state.sites.length}件の現場を管理しています</div>
       </div>
-      <button class="btn btn-secondary" data-action="not-implemented" data-msg="モック版では新規現場の登録はできません">${icon("plus")}現場を登録</button>
+      <button class="btn btn-secondary" data-action="not-implemented" data-msg="モック版では新規現場の登録はできません">${icon("plus")}現場を登録する</button>
     </div>
 
     <div class="filter-bar">
@@ -892,7 +892,7 @@ function renderWorkersList() {
         <td>
           <div style="display:flex;gap:6px;">
             <a class="btn btn-secondary btn-sm" href="#/workers/${w.id}">詳細</a>
-            <button class="btn btn-secondary btn-sm" data-action="open-add-cert" data-worker="${w.id}">資格追加</button>
+            <button class="btn btn-secondary btn-sm" data-action="open-add-cert" data-worker="${w.id}">資格証を登録</button>
           </div>
         </td>
       </tr>`;
@@ -905,7 +905,7 @@ function renderWorkersList() {
         <div class="page-title">作業員一覧</div>
         <div class="page-subtitle">全${Store.state.workers.length}名の作業員・保有資格を管理しています</div>
       </div>
-      <button class="btn btn-secondary" data-action="not-implemented" data-msg="モック版では新規作業員の登録はできません">${icon("plus")}作業員を登録</button>
+      <button class="btn btn-secondary" data-action="not-implemented" data-msg="モック版では新規作業員の登録はできません">${icon("plus")}作業員を登録する</button>
     </div>
 
     <div class="filter-bar">
@@ -1657,7 +1657,7 @@ function renderSettings() {
         <div class="card card-pad">
           <div class="section-title">デモ操作</div>
           <div class="form-hint" style="margin-bottom:14px;">このモックのデータをすべて初期状態に戻します。別の担当者にデモを見せる前などにご利用ください。</div>
-          <button class="btn btn-danger-outline" data-action="reset-demo">デモデータをリセット</button>
+          <button class="btn btn-danger-outline" data-action="reset-demo">デモデータをリセットする</button>
         </div>
       </div>
 
@@ -1675,7 +1675,7 @@ function renderSettings() {
             <span style="opacity:0.75;">次回更新日：2026/09/19</span>
           </div>
           <div class="form-hint" style="color:#cbd5e1;margin-top:10px;">※モック上の価格仮説です。本番の課金ロジックは実装していません。</div>
-          <button class="btn btn-secondary btn-block" style="margin-top:18px;" data-action="not-implemented" data-msg="モック版ではプラン変更はできません">プランを変更</button>
+          <button class="btn btn-secondary btn-block" style="margin-top:18px;" data-action="not-implemented" data-msg="モック版ではプラン変更はできません">プランを変更する</button>
         </div>
       </div>
     </div>
