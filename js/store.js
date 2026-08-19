@@ -4,8 +4,31 @@
  * 実際のDB/API通信は一切行わず、localStorageのみで状態を保持する。
  */
 
-const STORAGE_KEY = "teishutsu_mock_state_v1";
-const EXPIRING_THRESHOLD_DAYS = 30;
+// データ構造（templates/clients[].submissionMethods/certTypes[].deadlineType 等）を
+// 変更するたびに STORAGE_KEY のバージョン番号と CURRENT_SCHEMA_VERSION を両方上げること。
+// こうすることで、古いスキーマのlocalStorageが残っている環境でも、
+// その古いデータを読み込んで壊れた画面を表示することがない。
+const STORAGE_KEY = "teishutsu_mock_state_v2";
+const CURRENT_SCHEMA_VERSION = 2;
+// 作業員がスマホ画面から「提出」した内容を、事務員側の管理画面と疑似連動させるための共有キー。
+// mobile-submit.html（独立ページ）と本体アプリの双方が、同じキー名で直接localStorageを読み書きする。
+const PENDING_SUBMISSIONS_KEY = "teishutsu_mock_pending_submissions_v1";
+const DEADLINE_WARNING_DAYS = 30;
+
+// 保存データが現在のSEED_DATAスキーマと互換性があるかを最低限チェックする。
+// モックなので項目ごとの詳細なマイグレーションは行わず、
+// 合致しなければ丸ごと初期データへ差し替える方針にする。
+function isValidSavedState(state) {
+  if (!state || typeof state !== "object") return false;
+  if (!state.meta || state.meta.schemaVersion !== CURRENT_SCHEMA_VERSION) return false;
+  return (
+    Array.isArray(state.templates) &&
+    Array.isArray(state.clients) &&
+    Array.isArray(state.certTypes) &&
+    Array.isArray(state.workers) &&
+    Array.isArray(state.sites)
+  );
+}
 
 const Store = {
   state: null,
@@ -14,8 +37,12 @@ const Store = {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        this.state = JSON.parse(saved);
-        return;
+        const parsed = JSON.parse(saved);
+        if (isValidSavedState(parsed)) {
+          this.state = parsed;
+          return;
+        }
+        console.warn("保存データのスキーマが古い、または不正なため初期データで再初期化します");
       } catch (e) {
         console.warn("保存データの読み込みに失敗したため初期データを使用します", e);
       }
@@ -31,6 +58,7 @@ const Store = {
   reset() {
     this.state = cloneSeedData();
     this.save();
+    localStorage.removeItem(PENDING_SUBMISSIONS_KEY);
   },
 
   // ---- 基本参照ヘルパー ----
@@ -56,6 +84,23 @@ const Store = {
   },
   getCompanyDoc(id) {
     return this.state.company.documents.find((d) => d.id === id) || null;
+  },
+  getTemplate(id) {
+    return (this.state.templates || []).find((t) => t.id === id) || null;
+  },
+
+  // ---- 作業員からのスマホ提出（localStorage共有） ----
+  getPendingSubmissions() {
+    try {
+      const raw = localStorage.getItem(PENDING_SUBMISSIONS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  },
+  resolvePendingSubmission(id) {
+    const list = this.getPendingSubmissions().filter((p) => p.id !== id);
+    localStorage.setItem(PENDING_SUBMISSIONS_KEY, JSON.stringify(list));
   },
 };
 
@@ -99,14 +144,30 @@ function formatDateTimeJP(dateTimeStr) {
   ).padStart(2, "0")}`;
 }
 
-// ---- 資格ステータス判定 ----
-// 戻り値: 'valid' | 'expiring' | 'expired'
-function getCertLifecycleStatus(cert) {
-  if (!cert.expiryDate) return "valid";
-  const days = daysUntil(cert.expiryDate);
-  if (days < 0) return "expired";
-  if (days <= EXPIRING_THRESHOLD_DAYS) return "expiring";
-  return "valid";
+// ---- 資格・教育の期限管理ロジック ----
+// deadlineType ごとに「本当に期限切れ・失効となり得るのか」を区別する。
+// none / recommendedTraining は法的に失効しないため、決してブロッキングな状態にしない。
+//
+// 戻り値の severity:
+//   'none'     … 期限の概念がない（deadlineType=noneのとき）
+//   'ok'       … 問題なし
+//   'advisory' … 再教育推奨（recommendedTrainingのみ。非ブロッキング）
+//   'dueSoon'  … 期限が30日以内に迫っている（legal / clientRule / companyRule）
+//   'overdue'  … 期限を過ぎている（legal / clientRule / companyRule）
+function getCertDeadlineInfo(cert, certType) {
+  if (!certType || certType.deadlineType === "none" || !cert.deadlineDate) {
+    return { deadlineType: certType ? certType.deadlineType : "none", days: null, severity: "none" };
+  }
+  const days = daysUntil(cert.deadlineDate);
+  const deadlineType = certType.deadlineType;
+
+  if (deadlineType === "recommendedTraining") {
+    return { deadlineType, days, severity: days <= DEADLINE_WARNING_DAYS ? "advisory" : "ok" };
+  }
+  // legal / clientRule / companyRule … 実際に提出をブロックしうる期限
+  if (days < 0) return { deadlineType, days, severity: "overdue" };
+  if (days <= DEADLINE_WARNING_DAYS) return { deadlineType, days, severity: "dueSoon" };
+  return { deadlineType, days, severity: "ok" };
 }
 
 // 作業員が特定の資格種別を保有しているか（保有していればcertを返す）
@@ -115,14 +176,25 @@ function findWorkerCert(worker, certTypeId) {
 }
 
 // 現場の「作業員×資格」要件1件のステータスを判定
-// 戻り値: { status: 'ok'|'expiring'|'expired'|'missing', cert }
+// 戻り値: { status: 'ok'|'advisory'|'dueSoon'|'overdue'|'missing', cert, info }
+//   ok / advisory / dueSoon … 提出上は充足（advisory・dueSoonは注意喚起のみで非ブロッキング）
+//   overdue / missing       … 提出上は不足として扱う
 function getRequirementStatus(worker, certTypeId) {
   const cert = findWorkerCert(worker, certTypeId);
-  if (!cert) return { status: "missing", cert: null };
-  const lifecycle = getCertLifecycleStatus(cert);
-  if (lifecycle === "expired") return { status: "expired", cert };
-  if (lifecycle === "expiring") return { status: "expiring", cert };
-  return { status: "ok", cert };
+  if (!cert) return { status: "missing", cert: null, info: null };
+  const certType = Store.getCertType(certTypeId);
+  const info = getCertDeadlineInfo(cert, certType);
+
+  if (certType.deadlineType === "none") return { status: "ok", cert, info };
+  if (certType.deadlineType === "recommendedTraining") {
+    return { status: info.severity === "advisory" ? "advisory" : "ok", cert, info };
+  }
+  // legal / clientRule / companyRule
+  return { status: info.severity, cert, info }; // 'ok' | 'dueSoon' | 'overdue'
+}
+
+function isRequirementFulfilled(status) {
+  return status === "ok" || status === "advisory" || status === "dueSoon";
 }
 
 // 依頼済みかどうか
@@ -150,16 +222,17 @@ function computeSiteStats(site) {
 
   const workerItems = site.workerRequirements.map((req) => {
     const worker = Store.getWorker(req.workerId);
-    const { status, cert } = getRequirementStatus(worker, req.certTypeId);
+    const { status, cert, info } = getRequirementStatus(worker, req.certTypeId);
     return {
       type: "worker",
       workerId: req.workerId,
       workerName: worker ? worker.name : req.workerId,
       certTypeId: req.certTypeId,
       certName: Store.getCertTypeName(req.certTypeId),
-      status, // ok | expiring | expired | missing
-      fulfilled: status === "ok" || status === "expiring",
+      status, // ok | advisory | dueSoon | overdue | missing
+      fulfilled: isRequirementFulfilled(status),
       cert,
+      info,
       requested: isRequested(site.id, req.workerId, req.certTypeId),
     };
   });
@@ -187,17 +260,38 @@ function computeSiteStats(site) {
 }
 
 // ---- ダッシュボード集計 ----
-function getGlobalCertCounts() {
-  let expired = 0;
-  let expiring = 0;
+// 「資格が失効した」という誤認を避けるため、法定期限のない資格(none)は一切カウントしない。
+// recommendedTraining は「要対応（過ぎている）」「30日以内の確認（近づいている）」のどちらにも
+// 現れうるが、あくまで非ブロッキングな“おすすめ”であり、legal/clientRule/companyRuleのみが
+// 本当の意味での期限管理対象となる。
+function getQualificationAttentionCounts() {
+  let overdue = 0;
+  let dueSoon = 0;
+
   Store.state.workers.forEach((w) => {
     w.certs.forEach((c) => {
-      const s = getCertLifecycleStatus(c);
-      if (s === "expired") expired++;
-      else if (s === "expiring") expiring++;
+      const certType = Store.getCertType(c.certTypeId);
+      if (!certType || certType.deadlineType === "none") return;
+      const info = getCertDeadlineInfo(c, certType);
+      if (certType.deadlineType === "recommendedTraining") {
+        if (info.severity !== "advisory") return;
+        if (info.days < 0) overdue++;
+        else dueSoon++;
+      } else {
+        if (info.severity === "overdue") overdue++;
+        else if (info.severity === "dueSoon") dueSoon++;
+      }
     });
   });
-  return { expired, expiring };
+
+  // 建設業許可（会社の法定期限）もあわせて集計する
+  const licDays = daysUntil(Store.state.company.licenseExpiry);
+  if (licDays !== null) {
+    if (licDays < 0) overdue++;
+    else if (licDays <= DEADLINE_WARNING_DAYS) dueSoon++;
+  }
+
+  return { overdue, dueSoon };
 }
 
 function getGlobalMissingCount() {
@@ -217,7 +311,29 @@ function getSitesInProgressCount() {
 function getActionItems() {
   const items = [];
 
-  // 1. 現場提出期限が近く、まだ不足している作業員資格（提出期限が近い順）
+  // 1. 作業員からスマホで提出された資格証（未確認のもの）
+  Store.getPendingSubmissions()
+    .filter((p) => p.status === "pending")
+    .forEach((p) => {
+      const worker = Store.getWorker(p.workerId);
+      const site = Store.getSite(p.siteId);
+      items.push({
+        kind: "pending_submission",
+        priority: 0,
+        days: -1,
+        title: `${worker ? worker.name : p.workerId}さんから`,
+        subtitle: `${Store.getCertTypeName(p.certTypeId)}の資格証が届きました`,
+        detail: site ? `提出先現場：${site.name}　提出日時：${formatDateTimeJP(p.submittedAt)}` : formatDateTimeJP(p.submittedAt),
+        badge: "提出あり",
+        badgeType: "info",
+        actionLabel: "内容を確認する",
+        special: "review-submission",
+        pendingId: p.id,
+        eventDate: p.submittedAt,
+      });
+    });
+
+  // 2. 現場提出期限が近く、まだ不足している作業員資格（提出期限が近い順）
   Store.state.sites.forEach((site) => {
     const stats = computeSiteStats(site);
     stats.missingWorkerItems.forEach((item) => {
@@ -233,35 +349,54 @@ function getActionItems() {
         badgeType: days !== null && days <= 7 ? "danger" : "warning",
         actionLabel: "詳細を見る",
         actionHref: `#/sites/${site.id}`,
+        siteName: site.name,
       });
     });
   });
 
-  // 2. 資格の期限切れ・期限接近（作業員）
+  // 3. 資格・教育の期限管理（legal / clientRule / companyRule の期限切れ・期限接近、recommendedTrainingの再教育推奨）
+  const DEADLINE_LABEL = { legal: "有効期限", clientRule: "元請確認期限", companyRule: "自社確認期限" };
   Store.state.workers.forEach((worker) => {
     worker.certs.forEach((cert) => {
-      const lifecycle = getCertLifecycleStatus(cert);
-      if (lifecycle === "valid") return;
-      const days = daysUntil(cert.expiryDate);
+      const certType = Store.getCertType(cert.certTypeId);
+      if (!certType || certType.deadlineType === "none") return;
+      const info = getCertDeadlineInfo(cert, certType);
+
+      if (certType.deadlineType === "recommendedTraining") {
+        if (info.severity !== "advisory") return;
+        items.push({
+          kind: "recommended_training",
+          priority: info.days < 0 ? 0 : 1,
+          days: info.days,
+          title: `${worker.name}`,
+          subtitle: Store.getCertTypeName(cert.certTypeId),
+          detail: `次回教育推奨日：${formatDateJP(cert.deadlineDate)}`,
+          badge: "再教育推奨",
+          badgeType: "warning",
+          actionLabel: "詳細を見る",
+          actionHref: `#/workers/${worker.id}`,
+        });
+        return;
+      }
+
+      if (info.severity === "ok") return;
+      const label = DEADLINE_LABEL[certType.deadlineType] || "確認期限";
       items.push({
-        kind: lifecycle === "expired" ? "cert_expired" : "cert_expiring",
-        priority: lifecycle === "expired" ? 0 : 1,
-        days,
+        kind: "deadline_" + certType.deadlineType,
+        priority: info.severity === "overdue" ? 0 : 1,
+        days: info.days,
         title: `${worker.name}`,
         subtitle: Store.getCertTypeName(cert.certTypeId),
-        detail:
-          lifecycle === "expired"
-            ? `期限：${formatDateJP(cert.expiryDate)}（期限切れ）`
-            : `期限：${formatDateJP(cert.expiryDate)}`,
-        badge: lifecycle === "expired" ? "期限切れ" : `残り${days}日`,
-        badgeType: lifecycle === "expired" ? "danger" : "warning",
+        detail: `${label}：${formatDateJP(cert.deadlineDate)}${info.severity === "overdue" ? "（超過）" : ""}`,
+        badge: info.severity === "overdue" ? "超過" : `残り${info.days}日`,
+        badgeType: info.severity === "overdue" ? "danger" : "warning",
         actionLabel: "詳細を見る",
         actionHref: `#/workers/${worker.id}`,
       });
     });
   });
 
-  // 3. 会社書類の期限（建設業許可）
+  // 4. 会社書類の期限（建設業許可）
   const licDays = daysUntil(Store.state.company.licenseExpiry);
   if (licDays !== null && licDays <= 45) {
     items.push({
@@ -278,7 +413,7 @@ function getActionItems() {
     });
   }
 
-  // 4. 会社共通書類の未提出（労災保険資料など）
+  // 5. 会社共通書類の未提出（労災保険資料など）
   Store.state.company.documents
     .filter((d) => !d.fulfilled)
     .forEach((doc) => {
@@ -309,7 +444,7 @@ function getActionItems() {
 // ---- 更新系操作 ----
 
 // AI読み取り後の資格証登録
-function addWorkerCert(workerId, { certTypeId, issuer, certNumber, obtainedDate, expiryDate }) {
+function addWorkerCert(workerId, { certTypeId, issuer, certNumber, obtainedDate, deadlineDate }) {
   const worker = Store.getWorker(workerId);
   if (!worker) return null;
   // 既存の同一資格種別があれば更新、無ければ追加
@@ -318,7 +453,7 @@ function addWorkerCert(workerId, { certTypeId, issuer, certNumber, obtainedDate,
     cert.issuer = issuer;
     cert.certNumber = certNumber;
     cert.obtainedDate = obtainedDate;
-    cert.expiryDate = expiryDate || null;
+    cert.deadlineDate = deadlineDate || null;
   } else {
     cert = {
       id: `${workerId}-${certTypeId}-${Date.now()}`,
@@ -326,7 +461,7 @@ function addWorkerCert(workerId, { certTypeId, issuer, certNumber, obtainedDate,
       issuer,
       certNumber,
       obtainedDate,
-      expiryDate: expiryDate || null,
+      deadlineDate: deadlineDate || null,
     };
     worker.certs.push(cert);
   }
@@ -360,21 +495,29 @@ function markCompanyDocFulfilled(docId) {
   Store.save();
 }
 
-// 提出資料生成（疑似）
+// 提出資料生成（疑似）… 元請の提出方式に応じて生成内容を出し分ける
 function generateSubmissionFiles(site) {
-  const stats = computeSiteStats(site);
+  const client = Store.getClient(site.clientId);
+  const methods = client ? client.submissionMethods : [];
   const files = [];
   let n = 1;
   const pad = (num) => String(num).padStart(2, "0");
+
+  if (methods.includes("GreenSite")) files.push(`${pad(n++)}_GreenSite入力用確認一覧.xlsx`);
+  if (methods.includes("Buildee")) files.push(`${pad(n++)}_Buildee提出用データ一覧.xlsx`);
+  if (methods.includes("独自Excel")) files.push(`${pad(n++)}_${client.name}_独自提出シート.xlsx`);
+  if (methods.includes("Excel") && !methods.includes("独自Excel")) {
+    files.push(`${pad(n++)}_${client.name}_提出用Excel.xlsx`);
+  }
+
   files.push(`${pad(n++)}_会社情報.pdf`);
   files.push(`${pad(n++)}_作業員名簿.xlsx`);
-  stats.workerItems.forEach((item) => {
-    const shortName = item.workerName.replace(/\s/g, "");
-    files.push(`${pad(n++)}_${shortName}_${item.certName}.pdf`);
-  });
-  stats.companyItems.forEach((item) => {
-    files.push(`${pad(n++)}_${item.name}.pdf`);
-  });
+  files.push(`${pad(n++)}_資格証一式.pdf`);
+  files.push(`${pad(n++)}_会社証明書一式.pdf`);
+
+  if (methods.includes("メール")) files.push(`${pad(n++)}_提出メール本文（下書き）.txt`);
+  if (methods.includes("PDF")) files.push(`${pad(n++)}_提出用PDF一式.pdf`);
+
   files.push(`${pad(n++)}_提出チェックリスト.pdf`);
   return files;
 }
