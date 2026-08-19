@@ -254,8 +254,11 @@ th,
   gap: 14px;
 }
 
-.topbar-bell {
+.bell-wrap {
   position: relative;
+}
+
+.topbar-bell {
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -877,6 +880,8 @@ table.data-table {
   font-weight: 700;
   color: var(--color-text);
   text-align: right;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .mrc-stats {
@@ -1584,6 +1589,54 @@ textarea {
     flex: 1 1 100%;
   }
 
+  /* 情報表（ラベル：値）：ラベルと値の左端を16px基準で揃える。
+     tdのpadding-left:0が残ったままだと値だけカード左端へ寄ってしまうためリセットする */
+  .info-table tr {
+    padding: 10px 16px;
+  }
+  .info-table th,
+  .info-table td {
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .info-table th {
+    padding-top: 0;
+    padding-bottom: 3px;
+  }
+  .info-table td {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  /* モバイル行カード一覧：親カードとカード境界の間に余白を作る（詰め込みすぎ防止） */
+  .responsive-table .mobile-list {
+    padding: 10px;
+  }
+  .mobile-list .empty-state {
+    padding: 24px 10px;
+  }
+
+  /* 通知ドロップダウン：375px幅でも画面内に収める */
+  .bell-wrap {
+    position: static;
+  }
+  .notif-dropdown {
+    top: calc(var(--topbar-height) + 4px);
+    right: 10px;
+    width: min(360px, calc(100vw - 20px));
+  }
+
+  /* Toast：画面外へ出さず、長文でも折り返す */
+  .toast-wrap {
+    left: 10px;
+    right: 10px;
+    bottom: 16px;
+  }
+  .toast {
+    width: 100%;
+    min-width: 0;
+  }
+
   /* ボタン：タップしやすいよう最低40px確保 */
   .btn:not(.btn-sm) {
     min-height: 40px;
@@ -1832,6 +1885,14 @@ textarea {
 
 .settings-row:last-child {
   border-bottom: none;
+}
+
+@media (max-width: 600px) {
+  /* card-pad(16px)とsettings-row(16px)の二重インデントを解消 */
+  .settings-row {
+    padding-left: 0;
+    padding-right: 0;
+  }
 }
 
 .settings-row-title {
