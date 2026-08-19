@@ -1923,3 +1923,311 @@ textarea {
   font-size: 13px;
   cursor: pointer;
 }
+
+/* ============================================================
+   セルフガイドデモ（3分デモ）
+   既存の日本型業務システムUIのトーンを維持し、海外SaaS風の
+   派手なチュートリアル演出にはしない。
+   ============================================================ */
+
+body.demo-active .main-content {
+  padding-bottom: 96px;
+}
+
+/* デモ中はシナリオを壊さないよう、サイドバーの遷移だけ一時的に無効化する */
+body.demo-active .sidebar-nav .nav-item {
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+/* ---- 進捗バー（画面下部に固定） ---- */
+.demo-progress-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 250;
+  display: none;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  background: var(--color-primary-dark);
+  color: #fff;
+  box-shadow: 0 -4px 14px rgba(28, 33, 36, 0.22);
+}
+
+.demo-progress-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.demo-progress-kicker {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.03em;
+}
+
+.demo-progress-dots {
+  display: flex;
+  gap: 5px;
+}
+
+.demo-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.demo-dot.done {
+  background: #fff;
+}
+
+.demo-dot.current {
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+}
+
+.demo-progress-mid {
+  flex: 1;
+  min-width: 0;
+}
+
+.demo-progress-step {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.demo-progress-caption {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.demo-progress-bar .btn-secondary {
+  flex-shrink: 0;
+  background: transparent;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.demo-progress-bar .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 600px) {
+  .demo-progress-bar {
+    padding: 8px 10px;
+    gap: 10px;
+  }
+  .demo-progress-kicker {
+    display: none;
+  }
+  .demo-progress-caption {
+    white-space: normal;
+  }
+}
+
+/* ---- スポットライト（対象要素を枠＋背景で強調。色だけに依存しない） ---- */
+.demo-spotlight-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  pointer-events: none;
+}
+
+.demo-spotlight-box {
+  position: fixed;
+  border: 2.5px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 9999px rgba(28, 33, 36, 0.38);
+  transition: top 0.2s ease, left 0.2s ease, width 0.2s ease, height 0.2s ease;
+}
+
+/* ---- 吹き出し（説明＋次のアクションのみ。5行以上禁止） ---- */
+.demo-tooltip {
+  position: fixed;
+  z-index: 230;
+  max-width: 300px;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 12px 14px;
+}
+
+.demo-tooltip-badge {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  background: var(--color-primary-light);
+  padding: 2px 7px;
+  border-radius: 3px;
+  margin-bottom: 6px;
+}
+
+.demo-tooltip-text {
+  font-size: 13px;
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+@media (max-width: 600px) {
+  .demo-tooltip {
+    max-width: calc(100vw - 20px);
+  }
+}
+
+/* ---- 作業員側の提出体験（インライン埋め込み） ---- */
+.demo-worker-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(28, 33, 36, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.demo-worker-caption {
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.demo-worker-frame {
+  position: relative;
+  width: 375px;
+  max-width: 100%;
+  height: 720px;
+  max-height: 82vh;
+  background: #fff;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  border: 6px solid var(--color-neutral-800);
+}
+
+.demo-worker-frame iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+.demo-worker-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(28, 33, 36, 0.55);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.demo-worker-frame.full {
+  border-radius: 0;
+}
+
+@media (max-width: 600px) {
+  .demo-worker-overlay {
+    padding: 0;
+  }
+  .demo-worker-caption {
+    display: none;
+  }
+  .demo-worker-frame {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    border: none;
+  }
+}
+
+/* ---- デモ完了：達成リスト・価格検証UI ---- */
+.demo-recap-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.demo-recap-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 4px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.demo-question-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 14px 0 10px;
+}
+
+.demo-choice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.demo-choice {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 11px 14px;
+  min-height: 44px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text);
+  background: #fff;
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.demo-choice:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.demo-choice.selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  font-weight: 700;
+}
+
+.demo-plan-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+  color: var(--color-text-sub);
+  line-height: 1.9;
+}
