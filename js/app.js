@@ -304,12 +304,14 @@ function renderDashboard() {
     .filter((s) => s.status !== "提出済")
     .sort((a, b) => daysUntil(a.deadline) - daysUntil(b.deadline))
     .slice(0, 3);
+  const heroSite = topSites[0] || null;
+  const otherSites = topSites.slice(1);
 
   return `
     <div class="page-header">
       <div>
         <div class="page-title">ダッシュボード</div>
-        <div class="page-subtitle">今、対応が必要なことを一目で確認できます</div>
+        <div class="page-subtitle">提出期限や不足資料など、対応が必要な項目を確認できます。</div>
       </div>
     </div>
 
@@ -328,10 +330,12 @@ function renderDashboard() {
         <div class="kpi-note">同じ書類が複数現場で必要な場合は、それぞれ1件として集計しています</div>
       </div>
       <div class="kpi-card kpi-info">
-        <div class="kpi-label">提出準備中の現場</div>
-        <div class="kpi-value text-info">${inProgress}<span class="kpi-unit">件</span></div>
+        <div class="kpi-label">提出準備中</div>
+        <div class="kpi-value text-info">${inProgress}<span class="kpi-unit">現場</span></div>
       </div>
     </div>
+
+    ${heroSite ? renderPriorityCard(heroSite) : ""}
 
     <div class="two-col">
       <div class="card card-pad">
@@ -349,34 +353,78 @@ function renderDashboard() {
       </div>
 
       <div class="card card-pad">
-        <div class="section-title">現場一覧</div>
-        <div class="action-list">
-          ${topSites
+        <div class="section-title">他の現場</div>
+        ${
+          otherSites.length === 0
+            ? `<div class="empty-state" style="padding:20px;">他に準備中の現場はありません</div>`
+            : `<div class="action-list">
+          ${otherSites
             .map((site) => {
               const stats = computeSiteStats(site);
               return `
               <div class="action-row">
-                <div class="action-row-left" style="flex-direction:column;align-items:flex-start;gap:8px;width:100%;">
+                <div class="action-row-left" style="flex-direction:column;align-items:flex-start;gap:6px;width:100%;">
                   <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
                     <div>
                       <div class="action-text-title">${escapeHtml(site.name)}</div>
                       <div class="action-text-sub">元請：${escapeHtml(Store.getClientName(site.clientId))}</div>
                     </div>
                     <div style="text-align:right;">
-                      <div style="font-size:20px;font-weight:800;color:${stats.isComplete ? "var(--color-success)" : "var(--color-primary)"};">${stats.percent}%</div>
-                      ${stats.missingCount > 0 ? `<div class="text-danger" style="font-size:12px;font-weight:700;">不足${stats.missingCount}件</div>` : `<div class="text-success" style="font-size:12px;font-weight:700;">不足なし</div>`}
+                      <div style="font-size:16px;font-weight:700;color:${stats.isComplete ? "var(--color-success)" : "var(--color-primary)"};">${stats.percent}%</div>
+                      ${stats.missingCount > 0 ? `<div class="text-danger" style="font-size:11.5px;font-weight:700;">不足${stats.missingCount}件</div>` : `<div class="text-success" style="font-size:11.5px;font-weight:700;">不足なし</div>`}
                     </div>
                   </div>
                   <div class="progress-track"><div class="progress-fill ${stats.isComplete ? "complete" : ""}" style="width:${stats.percent}%"></div></div>
                   <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
-                    <span class="text-sub" style="font-size:12.5px;">提出期限：${formatDateJP(site.deadline)}</span>
-                    <a class="btn btn-secondary btn-sm" href="#/sites/${site.id}">提出準備を見る</a>
+                    <span class="text-sub" style="font-size:12px;">提出期限：${formatDateJP(site.deadline)}</span>
+                    <a class="btn btn-secondary btn-sm" href="#/sites/${site.id}">提出準備を確認</a>
                   </div>
                 </div>
               </div>`;
             })
             .join("")}
+          </div>`
+        }
+      </div>
+    </div>
+  `;
+}
+
+// ダッシュボードの主役：最も対応が急がれる現場を1件、詳細付きで見せる
+function renderPriorityCard(site) {
+  const stats = computeSiteStats(site);
+  const shortageItems = [...stats.missingCompanyItems, ...stats.missingWorkerItems].slice(0, 4);
+  const extraCount = stats.missingCount - shortageItems.length;
+  const days = daysUntil(site.deadline);
+  const daysLabel = days === null ? "" : days < 0 ? "（期限超過）" : `（残り${days}日）`;
+
+  return `
+    <div class="priority-card">
+      <div class="priority-card-label">優先して対応するもの</div>
+      <div class="priority-card-name">${escapeHtml(site.name)}</div>
+      <div class="priority-card-meta">元請：${escapeHtml(Store.getClientName(site.clientId))}　提出期限：${formatDateJP(site.deadline)}${daysLabel}</div>
+      <div class="priority-progress-row">
+        <div class="priority-progress-num ${stats.isComplete ? "complete" : ""}">${stats.percent}%</div>
+        <div class="priority-progress-track">
+          <div class="progress-track"><div class="progress-fill ${stats.isComplete ? "complete" : ""}" style="width:${stats.percent}%"></div></div>
+          <div class="priority-progress-caption">${stats.fulfilledCount} / ${stats.totalItems}件　${stats.missingCount > 0 ? `あと${stats.missingCount}件です` : "すべて揃っています"}</div>
         </div>
+      </div>
+      ${
+        shortageItems.length > 0
+          ? `<div class="shortage-list">
+        ${shortageItems
+          .map((item) => {
+            const name = item.type === "company" ? item.name : `${item.workerName} / ${item.certName}`;
+            return `<div class="attention-row"><span class="attn-mark">！</span>${escapeHtml(name)}</div>`;
+          })
+          .join("")}
+        ${extraCount > 0 ? `<div class="attention-row"><span class="attn-mark">！</span>他${extraCount}件</div>` : ""}
+      </div>`
+          : ""
+      }
+      <div class="priority-card-footer">
+        <a class="btn btn-primary" href="#/sites/${site.id}">提出準備を確認</a>
       </div>
     </div>
   `;

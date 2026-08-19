@@ -302,7 +302,7 @@ function getActionItems() {
         detail: site ? `提出先現場：${site.name}　提出日時：${formatDateTimeJP(p.submittedAt)}` : formatDateTimeJP(p.submittedAt),
         badge: "提出あり",
         badgeType: "info",
-        actionLabel: "内容を確認",
+        actionLabel: "内容を確認する",
         special: "review-submission",
         pendingId: p.id,
       });
