@@ -167,22 +167,24 @@ function modalShell(title, bodyHtml, footerHtml) {
    サイドバー
    ============================================================ */
 const NAV_ITEMS = [
-  { key: "dashboard", label: "ダッシュボード", icon: "dashboard", href: "#/dashboard" },
-  { key: "sites", label: "現場", icon: "sites", href: "#/sites" },
-  { key: "workers", label: "作業員", icon: "workers", href: "#/workers" },
-  { key: "company", label: "会社情報", icon: "company", href: "#/company" },
-  { key: "certifications", label: "資格・証明書", icon: "certs", href: "#/certifications" },
-  { key: "submissions", label: "提出資料", icon: "submissions", href: "#/submissions" },
-  { key: "settings", label: "設定", icon: "settings", href: "#/settings" },
+  { key: "dashboard", label: "ホーム", href: "#/dashboard" },
+  { group: "業務管理" },
+  { key: "sites", label: "現場管理", href: "#/sites" },
+  { key: "workers", label: "作業員管理", href: "#/workers" },
+  { key: "certifications", label: "資格・証明書", href: "#/certifications" },
+  { key: "submissions", label: "提出資料管理", href: "#/submissions" },
+  { group: "基本情報" },
+  { key: "company", label: "会社情報", href: "#/company" },
+  { key: "clients", label: "元請・提出設定", href: "#/clients" },
+  { group: "システム" },
+  { key: "settings", label: "設定", href: "#/settings" },
 ];
 
 function renderSidebar(activeKey) {
-  qs("#sidebarNav").innerHTML = NAV_ITEMS.map(
-    (item) => `
-    <a class="nav-item ${item.key === activeKey ? "active" : ""}" href="${item.href}">
-      ${icon(item.icon)}<span>${item.label}</span>
-    </a>`
-  ).join("");
+  qs("#sidebarNav").innerHTML = NAV_ITEMS.map((item) => {
+    if (item.group) return `<div class="nav-group-label">${escapeHtml(item.group)}</div>`;
+    return `<a class="nav-item ${item.key === activeKey ? "active" : ""}" href="${item.href}">${escapeHtml(item.label)}</a>`;
+  }).join("");
 }
 
 /* ============================================================
@@ -223,6 +225,8 @@ function renderApp() {
     html = renderSubmissions();
   } else if (root === "company") {
     html = renderCompany();
+  } else if (root === "clients") {
+    html = renderClients();
   } else if (root === "settings") {
     html = renderSettings();
   } else {
