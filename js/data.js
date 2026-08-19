@@ -36,20 +36,36 @@ const SEED_DATA = {
     ],
   },
 
+  // 元請ごとに提出方式が異なる（このモックの中核となる差別化ポイント）
+  // submissionMethods はあくまで「どの形式で提出が必要か」の表示用ダミー情報であり、
+  // GreenSite / Buildee 等への実際のAPI接続は一切行わない。
   clients: [
-    { id: "c1", name: "ABC建設株式会社" },
-    { id: "c2", name: "東都建設株式会社" },
-    { id: "c3", name: "中央工務株式会社" },
+    { id: "c1", name: "ABC建設株式会社", submissionMethods: ["GreenSite", "独自Excel"], templateId: "tpl1" },
+    { id: "c2", name: "東都建設株式会社", submissionMethods: ["Buildee"], templateId: "tpl2" },
+    { id: "c3", name: "中央工務株式会社", submissionMethods: ["Excel", "PDF", "メール"], templateId: "tpl3" },
+  ],
+
+  // 元請ごとの提出テンプレート（作成・編集機能は今回のモック対象外。適用されている状態のみ見せる）
+  templates: [
+    { id: "tpl1", clientId: "c1", name: "ABC建設 標準提出セット" },
+    { id: "tpl2", clientId: "c2", name: "東都建設 設備工事提出セット" },
+    { id: "tpl3", clientId: "c3", name: "中央工務 Excel提出セット" },
   ],
 
   // 資格・講習の種類マスタ
+  // deadlineType は実際の法制度上の期限管理区分を表す（実在資格に架空の法定期限を付けないための区分）
+  //   none               … 期限の概念がない（技能講習・特別教育の多くは一度取得すれば無期限）
+  //   legal              … 法令で定められた有効期限がある
+  //   recommendedTraining… 法定の失効はないが、再教育・再受講が推奨される
+  //   clientRule         … 元請が独自に定める確認期限
+  //   companyRule        … 自社が独自に定める確認期限
   certTypes: [
-    { id: "ct1", name: "玉掛け技能講習", hasExpiry: false },
-    { id: "ct2", name: "高所作業車運転技能講習", hasExpiry: true },
-    { id: "ct3", name: "フルハーネス型安全帯特別教育", hasExpiry: true },
-    { id: "ct4", name: "職長・安全衛生責任者教育", hasExpiry: true },
-    { id: "ct5", name: "足場の組立て等特別教育", hasExpiry: false },
-    { id: "ct6", name: "アーク溶接特別教育", hasExpiry: false },
+    { id: "ct1", name: "玉掛け技能講習", deadlineType: "none" },
+    { id: "ct2", name: "高所作業車運転技能講習", deadlineType: "none" },
+    { id: "ct3", name: "フルハーネス型安全帯特別教育", deadlineType: "none" },
+    { id: "ct4", name: "職長・安全衛生責任者教育", deadlineType: "recommendedTraining" },
+    { id: "ct5", name: "足場の組立て等特別教育", deadlineType: "none" },
+    { id: "ct6", name: "アーク溶接特別教育", deadlineType: "none" },
   ],
 
   workers: [
@@ -70,7 +86,7 @@ const SEED_DATA = {
           issuer: "東京技能講習センター",
           certNumber: "TAMA-118823",
           obtainedDate: "2022-04-01",
-          expiryDate: null,
+          deadlineDate: null,
         },
         {
           id: "w1-ct3",
@@ -78,7 +94,7 @@ const SEED_DATA = {
           issuer: "関東安全衛生教育協会",
           certNumber: "FH-220456",
           obtainedDate: "2023-06-10",
-          expiryDate: "2026-08-25",
+          deadlineDate: null,
         },
         {
           id: "w1-ct4",
@@ -86,7 +102,7 @@ const SEED_DATA = {
           issuer: "建設労務安全研究会",
           certNumber: "SH-330912",
           obtainedDate: "2023-09-10",
-          expiryDate: "2026-09-10",
+          deadlineDate: "2026-09-10",
         },
       ],
     },
@@ -107,7 +123,7 @@ const SEED_DATA = {
           issuer: "東京技能講習センター",
           certNumber: "TAMA-098211",
           obtainedDate: "2021-05-12",
-          expiryDate: null,
+          deadlineDate: null,
         },
         {
           id: "w2-ct2",
@@ -115,7 +131,7 @@ const SEED_DATA = {
           issuer: "全国高所作業車協会",
           certNumber: "KOSHO-55231",
           obtainedDate: "2024-01-10",
-          expiryDate: "2026-09-05",
+          deadlineDate: null,
         },
       ],
     },
@@ -136,7 +152,7 @@ const SEED_DATA = {
           issuer: "関東足場技能協会",
           certNumber: "ASHIBA-77120",
           obtainedDate: "2020-03-01",
-          expiryDate: null,
+          deadlineDate: null,
         },
         {
           id: "w3-ct3",
@@ -144,7 +160,7 @@ const SEED_DATA = {
           issuer: "関東安全衛生教育協会",
           certNumber: "FH-190233",
           obtainedDate: "2022-02-01",
-          expiryDate: "2026-07-31",
+          deadlineDate: null,
         },
       ],
     },
@@ -165,7 +181,7 @@ const SEED_DATA = {
           issuer: "東京技能講習センター",
           certNumber: "TAMA-055120",
           obtainedDate: "2019-09-09",
-          expiryDate: null,
+          deadlineDate: null,
         },
         {
           id: "w4-ct4",
@@ -173,7 +189,7 @@ const SEED_DATA = {
           issuer: "建設労務安全研究会",
           certNumber: "SH-101233",
           obtainedDate: "2020-05-01",
-          expiryDate: "2026-06-01",
+          deadlineDate: "2026-06-01",
         },
         {
           id: "w4-ct2",
@@ -181,7 +197,7 @@ const SEED_DATA = {
           issuer: "全国高所作業車協会",
           certNumber: "KOSHO-40982",
           obtainedDate: "2023-09-15",
-          expiryDate: "2026-09-15",
+          deadlineDate: null,
         },
       ],
     },
@@ -202,7 +218,7 @@ const SEED_DATA = {
           issuer: "全国高所作業車協会",
           certNumber: "KOSHO-66710",
           obtainedDate: "2023-08-01",
-          expiryDate: "2026-08-20",
+          deadlineDate: null,
         },
         {
           id: "w5-ct6",
@@ -210,7 +226,7 @@ const SEED_DATA = {
           issuer: "日本溶接技術振興会",
           certNumber: "ARC-30045",
           obtainedDate: "2024-02-01",
-          expiryDate: null,
+          deadlineDate: null,
         },
       ],
     },

@@ -54,20 +54,57 @@ function qsa(sel, root) {
 function badgeForRequirementStatus(status) {
   switch (status) {
     case "ok":
+    case "advisory":
       return { icon: "✓", cls: "check-icon" };
-    case "expiring":
+    case "dueSoon":
       return { icon: "△", cls: "warn-icon" };
-    case "expired":
+    case "overdue":
     case "missing":
     default:
       return { icon: "×", cls: "cross-icon" };
   }
 }
 
-function lifecycleBadge(lifecycle) {
-  if (lifecycle === "expired") return `<span class="badge badge-danger">期限切れ</span>`;
-  if (lifecycle === "expiring") return `<span class="badge badge-warning">期限間近</span>`;
-  return `<span class="badge badge-success">有効</span>`;
+// 資格・教育マスタのdeadlineTypeごとの表示ラベル（実務上の誤解を避けるための区分）
+const DEADLINE_TYPE_FIELD_LABEL = {
+  none: "期限なし",
+  legal: "有効期限",
+  recommendedTraining: "次回教育推奨日",
+  clientRule: "元請確認期限",
+  companyRule: "自社確認期限",
+};
+
+// 作業員詳細の資格カードに表示するステータスバッジ（deadlineTypeとseverityから決定）
+function certDeadlineBadge(certType, info) {
+  const t = certType.deadlineType;
+  if (t === "none") return `<span class="badge badge-neutral">期限なし</span>`;
+  if (t === "recommendedTraining") {
+    return info.severity === "advisory"
+      ? `<span class="badge badge-warning">再教育推奨</span>`
+      : `<span class="badge badge-neutral">次回教育予定</span>`;
+  }
+  if (t === "legal") {
+    if (info.severity === "overdue") return `<span class="badge badge-danger">期限切れ</span>`;
+    if (info.severity === "dueSoon") return `<span class="badge badge-warning">期限間近</span>`;
+    return `<span class="badge badge-success">有効</span>`;
+  }
+  // clientRule / companyRule
+  if (info.severity === "overdue") return `<span class="badge badge-danger">確認要</span>`;
+  if (info.severity === "dueSoon") return `<span class="badge badge-warning">確認期限間近</span>`;
+  return `<span class="badge badge-neutral">確認予定</span>`;
+}
+
+// 一覧・フィルター用の簡易分類： none(期限なし) | urgent(要対応) | soon(30日以内の確認) | ok(問題なし)
+function getAttentionBucket(cert, certType) {
+  if (!certType || certType.deadlineType === "none") return "none";
+  const info = getCertDeadlineInfo(cert, certType);
+  if (certType.deadlineType === "recommendedTraining") {
+    if (info.severity !== "advisory") return "ok";
+    return info.days < 0 ? "urgent" : "soon";
+  }
+  if (info.severity === "overdue") return "urgent";
+  if (info.severity === "dueSoon") return "soon";
+  return "ok";
 }
 
 function siteStatusBadge(status) {
@@ -504,20 +541,23 @@ function renderSiteDetail(siteId) {
       const reqs = site.workerRequirements.filter((r) => r.workerId === worker.id);
       const rows = reqs
         .map((r) => {
-          const { status } = getRequirementStatus(worker, r.certTypeId);
+          const { status, cert } = getRequirementStatus(worker, r.certTypeId);
+          const certType = Store.getCertType(r.certTypeId);
           const b = badgeForRequirementStatus(status);
           const requested = isRequested(site.id, worker.id, r.certTypeId);
-          const rowCls = status === "ok" ? "fulfilled" : status === "expiring" ? "expiring-row" : "missing";
+          const rowCls =
+            status === "ok" || status === "advisory" ? "fulfilled" : status === "dueSoon" ? "expiring-row" : "missing";
           let subText = "";
-          if (status === "expiring") {
-            const cert = findWorkerCert(worker, r.certTypeId);
-            subText = `資格期限が${daysUntil(cert.expiryDate)}日以内（${formatDateJP(cert.expiryDate)}）`;
-          } else if (status === "expired") {
-            const cert = findWorkerCert(worker, r.certTypeId);
-            subText = `期限切れ（${formatDateJP(cert.expiryDate)}）`;
+          if (status === "advisory") {
+            subText = `次回教育推奨日：${formatDateJP(cert.deadlineDate)}（そろそろ再教育をご検討ください）`;
+          } else if (status === "dueSoon") {
+            subText = `${DEADLINE_TYPE_FIELD_LABEL[certType.deadlineType]}が近づいています（${formatDateJP(cert.deadlineDate)}）`;
+          } else if (status === "overdue") {
+            subText = `${DEADLINE_TYPE_FIELD_LABEL[certType.deadlineType]}を過ぎています（${formatDateJP(cert.deadlineDate)}）`;
           } else if (status === "missing") {
             subText = "未登録";
           }
+          const needsRequest = status === "missing" || status === "overdue";
           return `
           <div class="check-row ${rowCls}">
             <div class="check-row-left">
@@ -529,12 +569,10 @@ function renderSiteDetail(siteId) {
             </div>
             <div class="check-row-right">
               ${
-                status !== "ok"
+                needsRequest
                   ? requested
                     ? `<span class="badge badge-neutral">依頼済み</span>`
-                    : status === "missing" || status === "expired"
-                    ? `<button class="btn btn-secondary btn-sm" data-action="open-request-modal" data-site="${site.id}" data-worker="${worker.id}" data-cert="${r.certTypeId}">依頼する</button>`
-                    : ""
+                    : `<button class="btn btn-secondary btn-sm" data-action="open-request-modal" data-site="${site.id}" data-worker="${worker.id}" data-cert="${r.certTypeId}">依頼する</button>`
                   : ""
               }
             </div>
@@ -725,12 +763,13 @@ function renderWorkersList() {
 
   const rows = filtered
     .map((w) => {
-      let expired = 0,
-        expiring = 0;
+      let urgent = 0,
+        soon = 0;
       w.certs.forEach((c) => {
-        const s = getCertLifecycleStatus(c);
-        if (s === "expired") expired++;
-        else if (s === "expiring") expiring++;
+        const certType = Store.getCertType(c.certTypeId);
+        const bucket = getAttentionBucket(c, certType);
+        if (bucket === "urgent") urgent++;
+        else if (bucket === "soon") soon++;
       });
       return `
       <tr class="row-clickable" data-action="navigate" data-href="#/workers/${w.id}">
@@ -746,8 +785,8 @@ function renderWorkersList() {
         <td>${escapeHtml(w.affiliation)}</td>
         <td>${escapeHtml(w.jobType)}</td>
         <td>${w.certs.length}件</td>
-        <td>${expired > 0 ? `<span class="badge badge-danger">期限切れ ${expired}件</span>` : `<span class="text-sub">-</span>`}</td>
-        <td>${expiring > 0 ? `<span class="badge badge-warning">期限接近 ${expiring}件</span>` : `<span class="text-sub">-</span>`}</td>
+        <td>${urgent > 0 ? `<span class="badge badge-danger">要対応 ${urgent}件</span>` : `<span class="text-sub">-</span>`}</td>
+        <td>${soon > 0 ? `<span class="badge badge-warning">要確認 ${soon}件</span>` : `<span class="text-sub">-</span>`}</td>
         <td>${formatDateJP(workerLastUpdated(w))}</td>
         <td>
           <div style="display:flex;gap:6px;">
@@ -776,7 +815,7 @@ function renderWorkersList() {
       <div class="table-wrap">
         <table class="data-table">
           <thead>
-            <tr><th>氏名</th><th>所属</th><th>職種</th><th>保有資格数</th><th>期限切れ</th><th>期限接近</th><th>最終更新日</th><th>操作</th></tr>
+            <tr><th>氏名</th><th>所属</th><th>職種</th><th>保有資格数</th><th>要対応</th><th>要確認</th><th>最終更新日</th><th>操作</th></tr>
           </thead>
           <tbody>${rows || `<tr><td colspan="8"><div class="empty-state">条件に一致する作業員がいません</div></td></tr>`}</tbody>
         </table>
@@ -811,7 +850,10 @@ function renderWorkerDetail(workerId) {
 
   const certCards = worker.certs
     .map((cert) => {
-      const lifecycle = getCertLifecycleStatus(cert);
+      const certType = Store.getCertType(cert.certTypeId);
+      const info = getCertDeadlineInfo(cert, certType);
+      const deadlineLabel = DEADLINE_TYPE_FIELD_LABEL[certType.deadlineType];
+      const deadlineValue = cert.deadlineDate ? formatDateJP(cert.deadlineDate) : "なし";
       return `
       <div class="card card-pad" style="margin-bottom:12px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;">
@@ -821,13 +863,13 @@ function renderWorkerDetail(workerId) {
               <div style="font-size:15.5px;font-weight:700;">${escapeHtml(Store.getCertTypeName(cert.certTypeId))}</div>
               <div class="info-grid" style="margin-top:10px;grid-template-columns:auto auto;column-gap:28px;">
                 <div><div class="info-item-label">取得日</div><div class="info-item-value">${formatDateJP(cert.obtainedDate)}</div></div>
-                <div><div class="info-item-label">有効期限</div><div class="info-item-value">${cert.expiryDate ? formatDateJP(cert.expiryDate) : "なし"}</div></div>
+                <div><div class="info-item-label">${deadlineLabel}</div><div class="info-item-value">${deadlineValue}</div></div>
                 <div><div class="info-item-label">発行機関</div><div class="info-item-value">${escapeHtml(cert.issuer)}</div></div>
                 <div><div class="info-item-label">修了証番号</div><div class="info-item-value">${escapeHtml(cert.certNumber)}</div></div>
               </div>
             </div>
           </div>
-          <div>${lifecycleBadge(lifecycle)}</div>
+          <div>${certDeadlineBadge(certType, info)}</div>
         </div>
       </div>`;
     })
@@ -900,21 +942,38 @@ function toISODate(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+// deadlineTypeに応じて、それらしい「次回期限」を1つ生成する（'none'なら空欄のまま）
+function generateDeadlineDateFor(deadlineType, obtained) {
+  if (deadlineType === "recommendedTraining") {
+    const d = new Date(obtained);
+    d.setFullYear(d.getFullYear() + 5);
+    return toISODate(d);
+  }
+  if (deadlineType === "legal") {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() + 3);
+    return toISODate(d);
+  }
+  if (deadlineType === "clientRule" || deadlineType === "companyRule") {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() + 1);
+    return toISODate(d);
+  }
+  return ""; // none
+}
+
 function generateExtractedCertData(certType) {
   const today = new Date();
   const obtained = new Date(today);
   obtained.setFullYear(obtained.getFullYear() - 2);
   obtained.setMonth(obtained.getMonth() - 3);
-  const expiry = new Date(today);
-  expiry.setFullYear(expiry.getFullYear() + 3);
-  expiry.setMonth(expiry.getMonth() - 1);
   const rand = Math.floor(10000 + Math.random() * 89999);
   return {
     certTypeId: certType.id,
     issuer: ISSUER_BY_CERT[certType.id] || "○○技能講習センター",
     certNumber: `${PREFIX_BY_CERT[certType.id] || "CERT"}-${rand}`,
     obtainedDate: toISODate(obtained),
-    expiryDate: certType.hasExpiry ? toISODate(expiry) : "",
+    deadlineDate: generateDeadlineDateFor(certType.deadlineType, obtained),
   };
 }
 
@@ -1173,28 +1232,27 @@ function renderCertifications() {
   const rows = [];
   Store.state.workers.forEach((w) => {
     w.certs.forEach((c) => {
-      rows.push({ worker: w, cert: c });
+      const certType = Store.getCertType(c.certTypeId);
+      rows.push({ worker: w, cert: c, certType, bucket: getAttentionBucket(c, certType) });
     });
   });
 
-  const filtered = rows.filter(({ worker, cert }) => {
+  const filtered = rows.filter(({ worker, bucket }) => {
     if (certsFilter.q && !worker.name.includes(certsFilter.q)) return false;
-    if (certsFilter.status) {
-      const s = getCertLifecycleStatus(cert);
-      if (s !== certsFilter.status) return false;
-    }
+    if (certsFilter.status && bucket !== certsFilter.status) return false;
     return true;
   });
 
   filtered.sort((a, b) => {
-    const da = a.cert.expiryDate ? new Date(a.cert.expiryDate).getTime() : Infinity;
-    const db = b.cert.expiryDate ? new Date(b.cert.expiryDate).getTime() : Infinity;
+    const da = a.cert.deadlineDate ? new Date(a.cert.deadlineDate).getTime() : Infinity;
+    const db = b.cert.deadlineDate ? new Date(b.cert.deadlineDate).getTime() : Infinity;
     return da - db;
   });
 
   const tableRows = filtered
-    .map(
-      ({ worker, cert }) => `
+    .map(({ worker, cert, certType }) => {
+      const info = getCertDeadlineInfo(cert, certType);
+      return `
     <tr class="row-clickable" data-action="navigate" data-href="#/workers/${worker.id}">
       <td>
         <div style="display:flex;align-items:center;gap:10px;">
@@ -1204,17 +1262,20 @@ function renderCertifications() {
       </td>
       <td>${escapeHtml(Store.getCertTypeName(cert.certTypeId))}</td>
       <td>${formatDateJP(cert.obtainedDate)}</td>
-      <td>${cert.expiryDate ? formatDateJP(cert.expiryDate) : "なし"}</td>
-      <td>${lifecycleBadge(getCertLifecycleStatus(cert))}</td>
-    </tr>`
-    )
+      <td>
+        <div class="cell-sub">${DEADLINE_TYPE_FIELD_LABEL[certType.deadlineType]}</div>
+        ${cert.deadlineDate ? formatDateJP(cert.deadlineDate) : "-"}
+      </td>
+      <td>${certDeadlineBadge(certType, info)}</td>
+    </tr>`;
+    })
     .join("");
 
   return `
     <div class="page-header">
       <div>
         <div class="page-title">資格・証明書</div>
-        <div class="page-subtitle">全作業員の資格・有効期限を横断で確認できます（全${rows.length}件）</div>
+        <div class="page-subtitle">全作業員の資格・期限管理区分を横断で確認できます（全${rows.length}件）</div>
       </div>
     </div>
 
@@ -1222,16 +1283,16 @@ function renderCertifications() {
       <input type="text" class="input input-search" id="certFilterQ" placeholder="作業員名で検索" value="${escapeHtml(certsFilter.q)}">
       <select class="select" id="certFilterStatus">
         <option value="">すべてのステータス</option>
-        <option value="valid" ${certsFilter.status === "valid" ? "selected" : ""}>有効</option>
-        <option value="expiring" ${certsFilter.status === "expiring" ? "selected" : ""}>期限間近</option>
-        <option value="expired" ${certsFilter.status === "expired" ? "selected" : ""}>期限切れ</option>
+        <option value="urgent" ${certsFilter.status === "urgent" ? "selected" : ""}>要対応</option>
+        <option value="soon" ${certsFilter.status === "soon" ? "selected" : ""}>30日以内の確認</option>
+        <option value="none" ${certsFilter.status === "none" ? "selected" : ""}>期限なし</option>
       </select>
     </div>
 
     <div class="card">
       <div class="table-wrap">
         <table class="data-table">
-          <thead><tr><th>氏名</th><th>資格名</th><th>取得日</th><th>有効期限</th><th>ステータス</th></tr></thead>
+          <thead><tr><th>氏名</th><th>資格名</th><th>取得日</th><th>期限</th><th>ステータス</th></tr></thead>
           <tbody>${tableRows || `<tr><td colspan="5"><div class="empty-state">条件に一致する資格がありません</div></td></tr>`}</tbody>
         </table>
       </div>
@@ -1356,7 +1417,7 @@ function renderCompany() {
             <div>
               <div class="info-item-label">許可期限</div>
               <div class="info-item-value">${formatDateJP(c.licenseExpiry)}
-                ${licLifecycleDays !== null && licLifecycleDays <= 45 ? `<span class="badge ${licLifecycleDays < 0 ? "badge-danger" : "badge-warning"}" style="margin-left:8px;">残り${licLifecycleDays}日</span>` : ""}
+                ${licLifecycleDays !== null && licLifecycleDays <= 45 ? `<span class="badge ${licLifecycleDays < 0 ? "badge-danger" : "badge-warning"}" style="margin-left:8px;">${licLifecycleDays < 0 ? "期限超過" : `残り${licLifecycleDays}日`}</span>` : ""}
               </div>
             </div>
           </div>
