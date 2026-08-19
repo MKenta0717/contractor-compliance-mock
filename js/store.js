@@ -305,6 +305,7 @@ function getActionItems() {
         actionLabel: "内容を確認する",
         special: "review-submission",
         pendingId: p.id,
+        eventDate: p.submittedAt,
       });
     });
 
@@ -324,6 +325,7 @@ function getActionItems() {
         badgeType: days !== null && days <= 7 ? "danger" : "warning",
         actionLabel: "詳細を見る",
         actionHref: `#/sites/${site.id}`,
+        siteName: site.name,
       });
     });
   });

@@ -302,165 +302,130 @@ function closeSidebarMobile() {
 function renderDashboard() {
   const { overdue, dueSoon } = getQualificationAttentionCounts();
   const missing = getGlobalMissingCount();
-  const inProgress = getSitesInProgressCount();
+  const openSites = Store.state.sites.filter((s) => s.status !== "提出済");
+  const urgentDeadlineCount = openSites.filter((s) => {
+    const d = daysUntil(s.deadline);
+    return d !== null && d <= 7;
+  }).length;
+  const readyCount = openSites.filter((s) => computeSiteStats(s).isComplete).length;
   const actionItems = getActionItems();
-  const topSites = Store.state.sites
-    .filter((s) => s.status !== "提出済")
-    .sort((a, b) => daysUntil(a.deadline) - daysUntil(b.deadline))
-    .slice(0, 3);
-  const heroSite = topSites[0] || null;
-  const otherSites = topSites.slice(1);
+
+  const sortedSites = openSites
+    .slice()
+    .sort((a, b) => daysUntil(a.deadline) - daysUntil(b.deadline));
 
   return `
     <div class="page-header">
       <div>
         <div class="page-title">ダッシュボード</div>
-        <div class="page-subtitle">提出期限や不足資料など、対応が必要な項目を確認できます。</div>
+        <div class="page-subtitle">提出期限や不足資料など、現在対応が必要な内容を確認できます。</div>
       </div>
     </div>
 
-    <div class="kpi-grid">
-      <div class="kpi-card kpi-danger">
-        <div class="kpi-label">要対応</div>
-        <div class="kpi-value text-danger">${overdue}<span class="kpi-unit">件</span></div>
-      </div>
-      <div class="kpi-card kpi-warning">
-        <div class="kpi-label">30日以内の確認</div>
-        <div class="kpi-value text-warning">${dueSoon}<span class="kpi-unit">件</span></div>
-      </div>
-      <div class="kpi-card kpi-danger">
-        <div class="kpi-label">現場別の不足項目</div>
-        <div class="kpi-value text-danger">${missing}<span class="kpi-unit">件</span></div>
-        <div class="kpi-note">同じ書類が複数現場で必要な場合は、それぞれ1件として集計しています</div>
-      </div>
-      <div class="kpi-card kpi-info">
-        <div class="kpi-label">提出準備中</div>
-        <div class="kpi-value text-info">${inProgress}<span class="kpi-unit">現場</span></div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="section-band">本日の確認事項</div>
+      <div class="today-check">
+        <div class="today-check-row">
+          <div class="today-check-label"><span class="today-check-mark mark-danger">！</span>提出期限7日以内</div>
+          <div class="today-check-value">${urgentDeadlineCount}現場</div>
+        </div>
+        <div class="today-check-row">
+          <div class="today-check-label"><span class="today-check-mark mark-danger">！</span>現場別の不足項目</div>
+          <div class="today-check-value">${missing}件</div>
+        </div>
+        <div class="today-check-row">
+          <div class="today-check-label"><span class="today-check-mark mark-warning">△</span>資格・教育の確認</div>
+          <div class="today-check-value">${overdue + dueSoon}件</div>
+        </div>
+        <div class="today-check-row">
+          <div class="today-check-label"><span class="today-check-mark mark-success">○</span>提出可能</div>
+          <div class="today-check-value">${readyCount}現場</div>
+        </div>
       </div>
     </div>
 
-    ${heroSite ? renderPriorityCard(heroSite) : ""}
+    <div class="card" style="margin-bottom:14px;">
+      <div class="section-band">対応が必要な現場</div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>現場名</th><th>元請</th><th>提出期限</th><th>準備率</th><th>不足</th><th>状態</th></tr>
+          </thead>
+          <tbody>
+            ${
+              sortedSites.length === 0
+                ? `<tr><td colspan="6"><div class="empty-state">対応が必要な現場はありません</div></td></tr>`
+                : sortedSites
+                    .map((site, idx) => {
+                      const stats = computeSiteStats(site);
+                      return `
+                    <tr class="row-clickable" data-action="navigate" data-href="#/sites/${site.id}">
+                      <td class="cell-name">${idx === 0 ? `<span class="priority-tag">優先</span>` : ""}${escapeHtml(site.name)}</td>
+                      <td>${escapeHtml(Store.getClientName(site.clientId))}</td>
+                      <td>${formatDateJP(site.deadline)}</td>
+                      <td>${stats.percent}%</td>
+                      <td>${stats.missingCount > 0 ? `<span class="text-danger" style="font-weight:700;">${stats.missingCount}件</span>` : "0件"}</td>
+                      <td>${siteStatusBadge(site.status)}</td>
+                    </tr>`;
+                    })
+                    .join("")
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
 
-    <div class="two-col">
-      <div class="card card-pad">
-        <div class="section-title">対応が必要な項目</div>
+    <div class="card">
+      <div class="section-band">新着・対応事項</div>
+      <div class="activity-list">
         ${
           actionItems.length === 0
-            ? `<div class="empty-state"><span class="check-icon" style="width:32px;height:32px;font-size:16px;margin-bottom:8px;">✓</span><div>すべての書類が揃っています。</div></div>`
-            : `<div class="action-list">
-            ${actionItems
-              .slice(0, 6)
-              .map((it) => renderActionRow(it))
-              .join("")}
-          </div>`
-        }
-      </div>
-
-      <div class="card card-pad">
-        <div class="section-title">他の現場</div>
-        ${
-          otherSites.length === 0
-            ? `<div class="empty-state" style="padding:20px;">他に準備中の現場はありません</div>`
-            : `<div class="action-list">
-          ${otherSites
-            .map((site) => {
-              const stats = computeSiteStats(site);
-              return `
-              <div class="action-row">
-                <div class="action-row-left" style="flex-direction:column;align-items:flex-start;gap:6px;width:100%;">
-                  <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
-                    <div>
-                      <div class="action-text-title">${escapeHtml(site.name)}</div>
-                      <div class="action-text-sub">元請：${escapeHtml(Store.getClientName(site.clientId))}</div>
-                    </div>
-                    <div style="text-align:right;">
-                      <div style="font-size:16px;font-weight:700;color:${stats.isComplete ? "var(--color-success)" : "var(--color-primary)"};">${stats.percent}%</div>
-                      ${stats.missingCount > 0 ? `<div class="text-danger" style="font-size:11.5px;font-weight:700;">不足${stats.missingCount}件</div>` : `<div class="text-success" style="font-size:11.5px;font-weight:700;">不足なし</div>`}
-                    </div>
-                  </div>
-                  <div class="progress-track"><div class="progress-fill ${stats.isComplete ? "complete" : ""}" style="width:${stats.percent}%"></div></div>
-                  <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
-                    <span class="text-sub" style="font-size:12px;">提出期限：${formatDateJP(site.deadline)}</span>
-                    <a class="btn btn-secondary btn-sm" href="#/sites/${site.id}">提出準備を確認</a>
-                  </div>
-                </div>
-              </div>`;
-            })
-            .join("")}
-          </div>`
+            ? `<div class="empty-state">現在、対応が必要な項目はありません。</div>`
+            : actionItems
+                .slice(0, 8)
+                .map((it) => renderActivityRow(it))
+                .join("")
         }
       </div>
     </div>
   `;
 }
 
-// ダッシュボードの主役：最も対応が急がれる現場を1件、詳細付きで見せる
-function renderPriorityCard(site) {
-  const stats = computeSiteStats(site);
-  const shortageItems = [...stats.missingCompanyItems, ...stats.missingWorkerItems].slice(0, 4);
-  const extraCount = stats.missingCount - shortageItems.length;
-  const days = daysUntil(site.deadline);
-  const daysLabel = days === null ? "" : days < 0 ? "（期限超過）" : `（残り${days}日）`;
-
-  return `
-    <div class="priority-card">
-      <div class="priority-card-label">優先して対応するもの</div>
-      <div class="priority-card-name">${escapeHtml(site.name)}</div>
-      <div class="priority-card-meta">元請：${escapeHtml(Store.getClientName(site.clientId))}　提出期限：${formatDateJP(site.deadline)}${daysLabel}</div>
-      <div class="priority-progress-row">
-        <div class="priority-progress-num ${stats.isComplete ? "complete" : ""}">${stats.percent}%</div>
-        <div class="priority-progress-track">
-          <div class="progress-track"><div class="progress-fill ${stats.isComplete ? "complete" : ""}" style="width:${stats.percent}%"></div></div>
-          <div class="priority-progress-caption">${stats.fulfilledCount} / ${stats.totalItems}件　${stats.missingCount > 0 ? `あと${stats.missingCount}件です` : "すべて揃っています"}</div>
-        </div>
-      </div>
-      ${
-        shortageItems.length > 0
-          ? `<div class="shortage-list">
-        ${shortageItems
-          .map((item) => {
-            const name = item.type === "company" ? item.name : `${item.workerName} / ${item.certName}`;
-            return `<div class="attention-row"><span class="attn-mark">！</span>${escapeHtml(name)}</div>`;
-          })
-          .join("")}
-        ${extraCount > 0 ? `<div class="attention-row"><span class="attn-mark">！</span>他${extraCount}件</div>` : ""}
-      </div>`
-          : ""
-      }
-      <div class="priority-card-footer">
-        <a class="btn btn-primary" href="#/sites/${site.id}">提出準備を確認</a>
-      </div>
-    </div>
-  `;
+// 「新着・対応事項」の1行（日付 + 平文の1文）
+function activitySentence(item) {
+  switch (item.kind) {
+    case "pending_submission":
+      return `${item.title}${item.subtitle}`;
+    case "missing_for_deadline":
+      return `${item.siteName || item.title}の提出期限まで${item.days !== null && item.days < 0 ? "を超過しています" : `残り${item.days}日`}`;
+    case "company_license":
+      return `建設業許可の確認期限が近づいています（${item.badge}）`;
+    case "company_doc_missing":
+      return `${item.subtitle}が未提出です`;
+    case "recommended_training":
+      return `${item.title}さんの${item.subtitle}が再教育推奨の時期です`;
+    default:
+      return `${item.title}さんの${item.subtitle}をご確認ください`;
+  }
 }
 
-function renderActionRow(it) {
-  const colorMap = { danger: "var(--color-danger)", warning: "var(--color-warning)", info: "var(--color-primary)" };
-  const bgMap = { danger: "var(--color-danger-light)", warning: "var(--color-warning-light)", info: "var(--color-primary-light)" };
-  const actionHtml =
+function renderActivityRow(it) {
+  const d = it.eventDate ? new Date(it.eventDate) : new Date();
+  const dateLabel = `${d.getMonth() + 1}/${d.getDate()}`;
+  const attrs =
     it.special === "review-submission"
-      ? `<button class="btn btn-secondary btn-sm" data-action="review-submission" data-id="${it.pendingId}">${it.actionLabel}</button>`
-      : `<a class="btn btn-secondary btn-sm" href="${it.actionHref}">${it.actionLabel}</a>`;
+      ? `data-action="review-submission" data-id="${it.pendingId}"`
+      : `data-action="navigate" data-href="${it.actionHref}"`;
   return `
-    <div class="action-row">
-      <div class="action-row-left">
-        <div class="action-icon" style="background:${bgMap[it.badgeType]};color:${colorMap[it.badgeType]};">${initialOf(it.title)}</div>
-        <div class="check-row-text">
-          <div class="action-text-title">${escapeHtml(it.title)}</div>
-          <div class="action-text-sub">${escapeHtml(it.subtitle)}</div>
-          <div class="action-text-detail">${escapeHtml(it.detail)}</div>
-        </div>
-      </div>
-      <div class="action-row-right">
-        <span class="badge badge-${it.badgeType}">${it.badge}</span>
-        ${actionHtml}
-      </div>
+    <div class="activity-row">
+      <span class="activity-date">${dateLabel}</span>
+      <a class="activity-text" href="javascript:void(0)" ${attrs}>${escapeHtml(activitySentence(it))}</a>
     </div>
   `;
 }
 
 /* ============================================================
-   画面2: 現場一覧
+   画面2: 現場管理
    ============================================================ */
 let sitesFilter = { q: "", clientId: "", status: "" };
 
