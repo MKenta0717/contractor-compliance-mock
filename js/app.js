@@ -61,7 +61,7 @@ function badgeForRequirementStatus(status) {
     case "overdue":
     case "missing":
     default:
-      return { icon: "×", cls: "cross-icon" };
+      return { icon: "！", cls: "cross-icon" };
   }
 }
 
@@ -583,7 +583,7 @@ function renderSiteDetail(siteId) {
           <span class="${b.cls}">${b.icon}</span>
           <div class="check-row-text">
             <div class="check-row-name">${escapeHtml(item.name)}</div>
-            ${!item.fulfilled ? `<div class="check-row-sub">未アップロード</div>` : ""}
+            <div class="check-row-sub">${item.fulfilled ? "準備済み" : "未アップロード"}</div>
           </div>
         </div>
         <div class="check-row-right">
@@ -605,7 +605,9 @@ function renderSiteDetail(siteId) {
           const rowCls =
             status === "ok" || status === "advisory" ? "fulfilled" : status === "dueSoon" ? "expiring-row" : "missing";
           let subText = "";
-          if (status === "advisory") {
+          if (status === "ok") {
+            subText = "準備済み";
+          } else if (status === "advisory") {
             subText = `次回教育推奨日：${formatDateJP(cert.deadlineDate)}（そろそろ再教育をご検討ください）`;
           } else if (status === "dueSoon") {
             subText = `${DEADLINE_TYPE_FIELD_LABEL[certType.deadlineType]}が近づいています（${formatDateJP(cert.deadlineDate)}）`;
@@ -693,21 +695,36 @@ function renderSiteDetail(siteId) {
 
       <div class="divider"></div>
 
+      <div class="section-title" style="margin-bottom:10px;">提出準備状況</div>
       <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
-        <div style="font-size:38px;font-weight:800;color:${stats.isComplete ? "var(--color-success)" : "var(--color-primary)"};">${stats.percent}<span style="font-size:18px;">%</span></div>
+        <div style="font-size:28px;font-weight:700;color:${stats.isComplete ? "var(--color-success)" : "var(--color-primary)"};">${stats.percent}<span style="font-size:15px;">%</span></div>
         <div style="flex:1;min-width:260px;">
-          <div class="progress-track" style="height:14px;"><div class="progress-fill ${stats.isComplete ? "complete" : ""}" style="width:${stats.percent}%"></div></div>
+          <div class="progress-track" style="height:10px;"><div class="progress-fill ${stats.isComplete ? "complete" : ""}" style="width:${stats.percent}%"></div></div>
           <div style="margin-top:8px;display:flex;gap:18px;flex-wrap:wrap;font-size:13px;">
-            <span class="text-sub">必要項目 <b style="color:var(--color-text);">${stats.totalItems}件</b></span>
-            <span class="text-sub">準備済み <b style="color:var(--color-success);">${stats.fulfilledCount}件</b></span>
-            <span class="text-sub">不足 <b style="color:${stats.missingCount > 0 ? "var(--color-danger)" : "var(--color-success)"};">${stats.missingCount}件</b></span>
+            <span class="text-sub">${stats.fulfilledCount} / ${stats.totalItems}件</span>
+            <span class="text-sub">${stats.missingCount > 0 ? `<b style="color:var(--color-danger);">あと${stats.missingCount}件です</b>` : `<b style="color:var(--color-success);">すべて揃っています</b>`}</span>
           </div>
         </div>
         <div style="display:flex;gap:10px;">
-          <button class="btn btn-secondary btn-lg" data-action="open-request-modal" data-site="${site.id}" ${stats.missingWorkerItems.length === 0 ? "disabled" : ""}>${icon("send")}不足資料を依頼</button>
-          <a class="btn btn-primary btn-lg" href="#/sites/${site.id}/generate">${icon("archive")}提出資料を作成</a>
+          <button class="btn btn-secondary btn-lg" data-action="open-request-modal" data-site="${site.id}" ${stats.missingWorkerItems.length === 0 ? "disabled" : ""}>${icon("send")}不足資料を依頼する</button>
+          <a class="btn btn-primary btn-lg" href="#/sites/${site.id}/generate">${icon("archive")}提出資料を準備する</a>
         </div>
       </div>
+
+      ${
+        stats.missingCount > 0
+          ? `<div class="divider"></div>
+      <div class="check-group-title" style="margin-bottom:8px;">対応が必要</div>
+      <div class="shortage-list" style="margin-top:0;">
+        ${[...stats.missingCompanyItems, ...stats.missingWorkerItems]
+          .map((item) => {
+            const name = item.type === "company" ? item.name : `${item.workerName} / ${item.certName}`;
+            return `<div class="attention-row"><span class="attn-mark">！</span>${escapeHtml(name)}</div>`;
+          })
+          .join("")}
+      </div>`
+          : ""
+      }
     </div>
 
     <div class="two-col">
@@ -750,7 +767,7 @@ function renderSiteGenerate(siteId) {
     body = `
       <div class="ai-loading">
         <div class="ai-spinner"></div>
-        <div class="ai-loading-text">提出資料を生成しています…</div>
+        <div class="ai-loading-text">提出資料を準備しています…</div>
         <div class="ai-loading-sub">書類を1つのフォルダにまとめています</div>
       </div>`;
   } else if (site.submissionGenerated) {
@@ -772,33 +789,35 @@ function renderSiteGenerate(siteId) {
   } else if (stats.missingCount > 0) {
     const missingList = [...stats.missingCompanyItems, ...stats.missingWorkerItems];
     body = `
-      <div class="ai-notice" style="background:var(--color-danger-light);border-color:var(--color-danger-border);color:#991b1b;">
+      <div class="ai-notice" style="background:var(--color-danger-light);border-color:var(--color-danger-border);color:var(--color-danger);">
         ${icon("warnTriangle")}
-        <div><b>提出資料が${stats.missingCount}件不足しています。</b><br>すべての書類が揃うと提出資料を生成できます。</div>
+        <div><b>提出資料が${stats.missingCount}件不足しています。</b><br>すべての書類が揃うと提出資料を準備できます。</div>
       </div>
       <div class="check-section">
         <div class="check-group-title">不足している書類</div>
-        ${missingList
-          .map((item) => {
-            const name = item.type === "company" ? item.name : `${item.workerName} / ${item.certName}`;
-            return `<div class="check-row missing"><div class="check-row-left"><span class="cross-icon">×</span><div class="check-row-text"><div class="check-row-name">${escapeHtml(name)}</div></div></div></div>`;
-          })
-          .join("")}
+        <div class="shortage-list" style="margin-top:0;">
+          ${missingList
+            .map((item) => {
+              const name = item.type === "company" ? item.name : `${item.workerName} / ${item.certName}`;
+              return `<div class="attention-row"><span class="attn-mark">！</span>${escapeHtml(name)}</div>`;
+            })
+            .join("")}
+        </div>
       </div>
-      <button class="btn btn-primary btn-lg btn-block" data-action="open-request-modal" data-site="${site.id}" ${stats.missingWorkerItems.length === 0 ? "disabled" : ""}>${icon("send")}不足資料を依頼</button>
+      <button class="btn btn-primary btn-lg btn-block" data-action="open-request-modal" data-site="${site.id}" ${stats.missingWorkerItems.length === 0 ? "disabled" : ""}>${icon("send")}不足資料を依頼する</button>
     `;
   } else {
     const files = generateSubmissionFiles(site);
     body = `
-      <div class="ai-notice" style="background:var(--color-success-light);border-color:var(--color-success-border);color:#065f46;">
-        <span style="font-size:18px;">✓</span>
-        <div><b>提出資料を作成できます。</b><br>必要な書類がすべて揃っています。</div>
+      <div class="ai-notice" style="background:var(--color-success-light);border-color:var(--color-success-border);color:var(--color-success);">
+        <span style="font-size:16px;">✓</span>
+        <div><b>提出資料を準備できます。</b><br>必要な書類がすべて揃っています。</div>
       </div>
-      <div class="check-group-title">生成される内容（プレビュー）</div>
+      <div class="check-group-title">準備される内容（プレビュー）</div>
       <div class="file-list" style="max-width:100%;">
         ${files.map((f) => `<div class="file-list-item">${icon("file")}${escapeHtml(f)}</div>`).join("")}
       </div>
-      <button class="btn btn-primary btn-lg btn-block" data-action="do-generate" data-site="${site.id}">${icon("archive")}提出資料を生成</button>
+      <button class="btn btn-primary btn-lg btn-block" data-action="do-generate" data-site="${site.id}">${icon("archive")}この内容で提出資料を準備する</button>
     `;
   }
 
@@ -981,7 +1000,7 @@ function renderWorkerDetail(workerId) {
       <div class="stack">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div class="section-title" style="margin-bottom:0;">資格一覧（${worker.certs.length}件）</div>
-          <button class="btn btn-primary" data-action="open-add-cert" data-worker="${worker.id}">${icon("plus")}資格証を追加</button>
+          <button class="btn btn-primary" data-action="open-add-cert" data-worker="${worker.id}">${icon("plus")}資格証を登録する</button>
         </div>
         <div>${certCards || `<div class="card card-pad"><div class="empty-state">登録済みの資格がありません</div></div>`}</div>
       </div>
@@ -1087,7 +1106,7 @@ function openSubmissionReviewModal(pendingId) {
 
 function renderAIModalUpload(worker) {
   const html = modalShell(
-    "資格証AI登録",
+    "資格証を登録",
     `
     <div class="ai-extract-badge">${icon("certs")} ${escapeHtml(worker.name)} さんの資格証を登録</div>
     <div class="upload-drop" data-action="ai-pick-file" id="aiUploadDrop">
@@ -1120,7 +1139,7 @@ function renderAIModalUpload(worker) {
 
 function startAILoading(worker, previewSrc) {
   const html = modalShell(
-    "資格証AI登録",
+    "資格証を登録",
     `<div class="ai-loading">
       <div class="ai-spinner"></div>
       <div class="ai-loading-text">AIが資格証を読み取っています…</div>
@@ -1160,7 +1179,7 @@ function renderAIModalReview(worker, extracted, previewSrc, context) {
   const isNone = initialCertType.deadlineType === "none";
 
   const html = modalShell(
-    "資格証AI登録",
+    "資格証を登録",
     `
     <div class="ai-notice">
       ${icon("warnTriangle")}
@@ -1203,7 +1222,7 @@ function renderAIModalReview(worker, extracted, previewSrc, context) {
     </div>
     `,
     `<button class="btn btn-secondary" data-action="close-modal">キャンセル</button>
-     <button class="btn btn-primary" id="aiConfirmBtn">確認して登録</button>`
+     <button class="btn btn-primary" id="aiConfirmBtn">内容を確認して登録する</button>`
   );
   openModal(html);
 
@@ -1266,7 +1285,7 @@ function openRequestModal(siteId, workerId, certTypeId) {
 
   if (selectable.length === 0 && alreadyRequested.length > 0) {
     const html = modalShell(
-      "不足資料の依頼",
+      "不足資料を依頼",
       `<div class="empty-state">${icon("send")}<div style="margin-top:10px;">対象の資料はすべて依頼済みです。</div></div>`,
       `<button class="btn btn-secondary" data-action="close-modal">閉じる</button>`
     );
@@ -1275,7 +1294,7 @@ function openRequestModal(siteId, workerId, certTypeId) {
   }
   if (selectable.length === 0) {
     const html = modalShell(
-      "不足資料の依頼",
+      "不足資料を依頼",
       `<div class="empty-state">依頼が必要な作業員資料はありません。</div>`,
       `<button class="btn btn-secondary" data-action="close-modal">閉じる</button>`
     );
@@ -1298,7 +1317,7 @@ function openRequestModal(siteId, workerId, certTypeId) {
     .join("");
 
   const html = modalShell(
-    "不足資料の依頼",
+    "不足資料を依頼",
     `
     <div class="info-grid" style="margin-bottom:16px;">
       <div><div class="info-item-label">使用予定現場</div><div class="info-item-value">${escapeHtml(site.name)}</div></div>
@@ -1317,7 +1336,7 @@ function openRequestModal(siteId, workerId, certTypeId) {
     </div>
     `,
     `<button class="btn btn-secondary" data-action="close-modal">キャンセル</button>
-     <button class="btn btn-primary" id="reqSendBtn">${icon("send")}依頼を送信</button>`
+     <button class="btn btn-primary" id="reqSendBtn">${icon("send")}依頼を送信する</button>`
   );
   openModal(html, { wide: false });
 
@@ -1342,7 +1361,7 @@ function renderRequestSuccess(site, items) {
     `&company=${encodeURIComponent(Store.state.company.name)}` +
     `&workerId=${encodeURIComponent(first.workerId)}&certTypeId=${encodeURIComponent(first.certTypeId)}&siteId=${encodeURIComponent(site.id)}`;
   const html = modalShell(
-    "不足資料の依頼",
+    "不足資料を依頼",
     `
     <div class="success-panel" style="padding:20px 10px;">
       <div class="success-icon-circle">✓</div>
@@ -1506,7 +1525,7 @@ function renderCompany() {
       (doc) => `
     <div class="check-row ${doc.fulfilled ? "fulfilled" : "missing"}">
       <div class="check-row-left">
-        <span class="${doc.fulfilled ? "check-icon" : "cross-icon"}">${doc.fulfilled ? "✓" : "×"}</span>
+        <span class="${doc.fulfilled ? "check-icon" : "cross-icon"}">${doc.fulfilled ? "✓" : "！"}</span>
         <div class="check-row-text">
           <div class="check-row-name">${escapeHtml(doc.name)}</div>
           <div class="check-row-sub">${doc.fulfilled ? `更新日：${formatDateJP(doc.updatedAt)}` : "未アップロード"}</div>
