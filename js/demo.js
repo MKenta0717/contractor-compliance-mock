@@ -59,6 +59,9 @@ const Demo = {
   _lastRequestItems: null,
   _repositionBound: false,
   _repositionTimer: null,
+  _repositionTimer2: null,
+  _scrollEndHandler: null,
+  _spotlightEl: null,
 
   /* ============================================================
      入口判定（初回訪問 / ?demo=1）
@@ -383,28 +386,56 @@ const Demo = {
       this.hideSpotlight();
       return;
     }
-    this.showSpotlightOn(el, cfg.text);
+
+    qs("#demoTooltipText").textContent = cfg.text;
+    qs("#demoSpotlightOverlay").style.display = "block";
+    qs("#demoTooltip").style.display = "block";
+
+    if (el === this._spotlightEl) {
+      // 対象は変わっていない（スクロール/リサイズ等での再計算）：位置だけ合わせ直し、
+      // スクロールアニメーション中に再度scrollIntoView()を呼んでガクガクさせない。
+      this.positionSpotlight(el);
+      this.positionTooltip(el);
+      return;
+    }
+    this._spotlightEl = el;
+    this.activateSpotlight(el);
   },
 
-  showSpotlightOn(el, text) {
-    const rect = el.getBoundingClientRect();
-    const fullyVisible = rect.top > 70 && rect.bottom < window.innerHeight - 100;
-    if (!fullyVisible) {
-      el.scrollIntoView({ block: "center", behavior: "smooth" });
-    }
-    const overlay = qs("#demoSpotlightOverlay");
-    const tooltip = qs("#demoTooltip");
-    qs("#demoTooltipText").textContent = text;
-    overlay.style.display = "block";
-    tooltip.style.display = "block";
-
+  // 対象が切り替わった最初の1回だけ呼ばれる：必要ならスクロールし、
+  // アニメーションが実際に収まるタイミングで一度だけ位置を合わせ直す。
+  activateSpotlight(el) {
     const reposition = () => {
       this.positionSpotlight(el);
       this.positionTooltip(el);
     };
     reposition();
+
     clearTimeout(this._repositionTimer);
-    this._repositionTimer = setTimeout(reposition, 380);
+    clearTimeout(this._repositionTimer2);
+    if (this._scrollEndHandler) {
+      window.removeEventListener("scrollend", this._scrollEndHandler);
+      this._scrollEndHandler = null;
+    }
+
+    const rect = el.getBoundingClientRect();
+    const fullyVisible = rect.top > 70 && rect.bottom < window.innerHeight - 100;
+    if (!fullyVisible) {
+      el.scrollIntoView({ block: "center", behavior: "smooth" });
+      // smooth scrollの所要時間は距離や環境で変わるため、単発の遅延実行だけに頼らない。
+      // 対応ブラウザではscrollendで確実に「止まった瞬間」に合わせ、
+      // 未対応・念のためのフォールバックとして複数回の再計算も予約しておく。
+      if ("onscrollend" in window) {
+        this._scrollEndHandler = () => {
+          window.removeEventListener("scrollend", this._scrollEndHandler);
+          this._scrollEndHandler = null;
+          reposition();
+        };
+        window.addEventListener("scrollend", this._scrollEndHandler, { once: true });
+      }
+      this._repositionTimer = setTimeout(reposition, 380);
+      this._repositionTimer2 = setTimeout(reposition, 800);
+    }
   },
 
   positionSpotlight(el) {
@@ -435,6 +466,13 @@ const Demo = {
 
   hideSpotlight() {
     clearTimeout(this._recoveryTimer);
+    clearTimeout(this._repositionTimer);
+    clearTimeout(this._repositionTimer2);
+    if (this._scrollEndHandler) {
+      window.removeEventListener("scrollend", this._scrollEndHandler);
+      this._scrollEndHandler = null;
+    }
+    this._spotlightEl = null;
     const overlay = qs("#demoSpotlightOverlay");
     const tooltip = qs("#demoTooltip");
     if (overlay) overlay.style.display = "none";
