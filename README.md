@@ -34,6 +34,25 @@ npx serve .
 
 ---
 
+## 需要検証用LP
+
+広告・Instagram等から初めて訪れた専門工事会社の方に向けた、需要検証用のランディングページです。
+本格的なサービスサイトではなく、「自分たちの提出書類業務の問題だ」と感じてもらい
+セルフガイドデモへ進んでもらうことに絞った1枚構成です。詳細は [`LP_SPEC.md`](LP_SPEC.md) を参照してください。
+
+- 公開URL（例）：`https://mkenta0717.github.io/contractor-compliance-mock/lp.html`
+- ローカルで確認する場合：`http://localhost:8080/lp.html`
+- ページ内のすべてのCTA（ヘッダー／ファーストビュー／説明後／料金／最終／スマホ固定バー）は
+  `index.html?demo=1&source=lp#/dashboard`（相対パス）へ遷移し、既存のセルフガイドデモの
+  ウェルカム画面から3分デモが開始します。LP独自の別デモ画面は作っていません。
+- `source=lp` は将来の流入元計測用に付与しているだけで、`Demo.checkEntry()` は `demo=1` のみを
+  見て判定するため、余分なパラメータがあっても既存のデモ起動ロジックに影響しません。
+- LPの表示・CTAクリックは `js/lp.js` の `recordLpEvent()` で `teishutsu_lp_events_v1` に記録されます
+  （`lp_view` / `hero_demo_click` / `middle_demo_click` / `price_demo_click` / `final_demo_click`）。
+  外部Analyticsはまだ接続していません。
+
+---
+
 ## セルフガイドデモ（3分デモ）
 
 営業担当・説明担当が同席しなくても、初めて訪れた専門工事会社の方が
@@ -233,13 +252,17 @@ UI・ロジックは通常モード（シナリオD）と共通で、埋め込�
 submission-doc-mock/
 ├── index.html          … SPA本体（ダッシュボード〜設定までの全画面）
 ├── mobile-submit.html  … 作業員側の提出画面（独立ページ。埋め込み利用にも対応）
+├── lp.html              … 需要検証用LP（独立ページ）
 ├── css/style.css        … 全画面共通スタイル（セルフガイドデモのUIも含む）
+├── css/lp.css            … LP専用スタイル（style.cssのトークンを流用）
 ├── js/data.js            … ダミーデータ定義
 ├── js/store.js           … 状態管理・準備率などの疑似ビジネスロジック
 ├── js/app.js              … 画面描画・ルーティング・モーダル・イベント処理
 ├── js/demo.js             … セルフガイドデモ（進捗管理・スポットライト・feedback収集）
+├── js/lp.js               … LPのイベント記録（recordLpEvent）
 ├── README.md
 ├── DEMO_SPEC.md         … セルフガイドデモの設計仕様（目的・ステップ・完了条件・イベント一覧）
+├── LP_SPEC.md           … 需要検証LPの設計仕様（目的・訴求・セクション構成・CTA・イベント一覧）
 ├── MOCK_FEEDBACK.md     … モック仕様外だが今後の検討候補となった機能案
 └── DESIGN_FEEDBACK.md   … デザイン刷新時に見つかった機能・ロジック側の改善候補
 ```

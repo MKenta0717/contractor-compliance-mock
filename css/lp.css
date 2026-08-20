@@ -1,0 +1,641 @@
+/* ============================================================
+   需要検証用LP（lp.html）
+   既存モック（css/style.css）のデザイントークン・コンポーネントを
+   そのまま流用し、LP独自の海外SaaS風の演出は追加しない。
+   ============================================================ */
+
+body {
+  line-height: 1.7;
+}
+
+main {
+  overflow-x: hidden;
+}
+
+.lp-section-inner,
+.lp-header-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.lp-section-inner-narrow {
+  max-width: 760px;
+}
+
+.lp-h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text);
+  text-align: center;
+  margin: 0 0 28px;
+  line-height: 1.5;
+}
+
+.lp-br-mobile {
+  display: none;
+}
+
+/* ---- ヘッダー ---- */
+.lp-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.lp-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.lp-logo-text {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.35;
+}
+
+.lp-logo-sub {
+  font-size: 10.5px;
+  color: var(--color-text-sub);
+  font-weight: 500;
+  margin-top: 1px;
+}
+
+.lp-header-cta {
+  flex-shrink: 0;
+  padding: 8px 18px;
+}
+
+/* ---- ファーストビュー ---- */
+.lp-hero {
+  background: var(--color-bg);
+  padding: 44px 0 52px;
+}
+
+.lp-hero-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 32px;
+  align-items: center;
+}
+
+.lp-kicker {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  margin: 0 0 10px;
+}
+
+.lp-h1 {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.45;
+  margin: 0 0 16px;
+}
+
+.lp-lead {
+  font-size: 14.5px;
+  color: var(--color-text-sub);
+  line-height: 1.8;
+  margin: 0 0 26px;
+}
+
+.lp-cta-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.lp-cta-main {
+  width: 100%;
+  max-width: 380px;
+}
+
+.lp-reassure-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lp-reassure-list li {
+  font-size: 12px;
+  color: var(--color-text-sub);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.lp-reassure-list li::before {
+  content: "✓";
+  color: var(--color-success);
+  font-weight: 800;
+}
+
+.lp-reassure-list-center {
+  justify-content: center;
+}
+
+/* ---- ブラウザ風フレーム（実UIの静的再構築） ---- */
+.lp-hero-visual {
+  display: flex;
+  justify-content: center;
+}
+
+.lp-browser-frame {
+  width: 100%;
+  max-width: 440px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.lp-browser-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 12px;
+  background: var(--color-section-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.lp-browser-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-neutral-300);
+}
+
+.lp-browser-url {
+  margin-left: 8px;
+  font-size: 10.5px;
+  color: var(--color-text-sub);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  padding: 2px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lp-browser-body {
+  padding: 14px;
+  background: var(--color-bg);
+}
+
+.lp-mock-page-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 10px;
+}
+
+.lp-mock-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.lp-mock-card:last-child {
+  margin-bottom: 0;
+}
+
+.lp-mock-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--color-neutral-100);
+  font-size: 12.5px;
+}
+
+.lp-mock-row:first-of-type {
+  border-top: none;
+}
+
+.lp-mock-row-title {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.lp-mock-row-sub {
+  font-size: 11px;
+  color: var(--color-text-sub);
+  margin-top: 1px;
+}
+
+.lp-mock-row-attention {
+  align-items: flex-start;
+}
+
+.lp-mock-btn {
+  pointer-events: none;
+}
+
+.lp-mock-info-table.info-table th {
+  width: 90px;
+  font-size: 11px;
+}
+
+.lp-mock-info-table.info-table td {
+  font-size: 12px;
+}
+
+/* ---- 汎用セクション ---- */
+.lp-section {
+  padding: 52px 0;
+}
+
+.lp-section-alt {
+  background: var(--color-section-bg);
+}
+
+.lp-cta-center {
+  text-align: center;
+  margin-top: 28px;
+}
+
+/* ---- こんな状態になっていませんか？ ---- */
+.lp-pain-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+
+.lp-pain-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+}
+
+.lp-pain-q {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 6px;
+}
+
+.lp-pain-a {
+  font-size: 13px;
+  color: var(--color-text-sub);
+  line-height: 1.7;
+}
+
+/* ---- このシステムなら（フロー） ---- */
+.lp-flow-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.lp-flow-list li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.lp-flow-num {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---- 実際の画面 ---- */
+.lp-screens {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+}
+
+.lp-screen-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.lp-screen-mock {
+  padding: 14px;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.lp-screen-copy {
+  padding: 14px 16px;
+}
+
+.lp-screen-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
+.lp-screen-text {
+  font-size: 12.5px;
+  color: var(--color-text-sub);
+  line-height: 1.7;
+}
+
+.lp-screens-note {
+  text-align: center;
+  margin-top: 20px;
+}
+
+/* ---- なぜ便利なのか ---- */
+.lp-why-text {
+  font-size: 13.5px;
+  color: var(--color-text-sub);
+  line-height: 1.8;
+  text-align: center;
+  margin: 0 0 24px;
+}
+
+.lp-why-compare {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.lp-why-col {
+  width: 100%;
+  max-width: 340px;
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  text-align: center;
+}
+
+.lp-why-before {
+  background: var(--color-neutral-100);
+  border: 1px solid var(--color-border);
+}
+
+.lp-why-after {
+  background: var(--color-primary-light);
+  border: 1px solid var(--color-primary-lighter);
+}
+
+.lp-why-col-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-sub);
+  margin-bottom: 6px;
+}
+
+.lp-why-after .lp-why-col-label {
+  color: var(--color-primary-dark);
+}
+
+.lp-why-col-text {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.lp-why-arrow {
+  font-size: 18px;
+  color: var(--color-neutral-400);
+  font-weight: 700;
+}
+
+/* ---- 料金仮説 ---- */
+.lp-price-hint {
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--color-text-sub);
+  margin: -12px 0 24px;
+}
+
+.lp-price-box {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.lp-price-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
+.lp-price-tax {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-sub);
+  margin-left: 4px;
+}
+
+.lp-price-scope {
+  font-size: 12.5px;
+  color: var(--color-text-sub);
+  margin-bottom: 14px;
+}
+
+.lp-price-list {
+  margin: 0 0 14px;
+}
+
+.lp-price-disclaimer {
+  margin-top: 0;
+}
+
+/* ---- 対象外 ---- */
+.lp-scope-section {
+  padding: 28px 0;
+}
+
+.lp-scope-text {
+  font-size: 12px;
+  color: var(--color-text-sub);
+  text-align: center;
+  line-height: 1.8;
+  margin: 0;
+}
+
+/* ---- FAQ ---- */
+.lp-faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lp-faq-item {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 4px 16px;
+}
+
+.lp-faq-item summary {
+  padding: 12px 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-text);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.lp-faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.lp-faq-item summary::after {
+  content: "+";
+  flex-shrink: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-sub);
+}
+
+.lp-faq-item[open] summary::after {
+  content: "−";
+}
+
+.lp-faq-a {
+  font-size: 12.5px;
+  color: var(--color-text-sub);
+  line-height: 1.8;
+  padding-bottom: 14px;
+}
+
+/* ---- 最終CTA ---- */
+.lp-final-cta {
+  background: var(--color-primary-dark);
+  padding: 52px 0;
+  text-align: center;
+}
+
+.lp-final-h2 {
+  color: #fff;
+}
+
+.lp-final-cta .lp-cta-main {
+  margin: 0 auto;
+}
+
+/* ---- フッター ---- */
+.lp-footer {
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+  padding: 20px 0 32px;
+}
+
+.lp-footer p {
+  font-size: 11px;
+  color: var(--color-text-sub);
+  text-align: center;
+  line-height: 1.8;
+  margin: 2px 0;
+}
+
+/* ---- スマホ固定CTA ---- */
+.lp-sticky-cta {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .lp-sticky-cta {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    padding: 10px 14px;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+    box-shadow: 0 -4px 14px rgba(28, 33, 36, 0.12);
+  }
+
+  body {
+    padding-bottom: 62px;
+  }
+}
+
+/* ---- レスポンシブ ---- */
+@media (min-width: 700px) {
+  .lp-pain-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .lp-screens {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .lp-why-compare {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
+
+@media (min-width: 1080px) {
+  .lp-hero-inner {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: 40px;
+  }
+  .lp-h1 {
+    font-size: 30px;
+  }
+  .lp-br-mobile {
+    display: none;
+  }
+}
+
+@media (max-width: 430px) {
+  .lp-h1 {
+    font-size: 25px;
+  }
+  .lp-hero {
+    padding: 32px 0 40px;
+  }
+  .lp-h2 {
+    font-size: 20px;
+  }
+  .lp-br-mobile {
+    display: inline;
+  }
+}
