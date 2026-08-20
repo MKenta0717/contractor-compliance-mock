@@ -262,6 +262,8 @@ function renderApp() {
   bindSitesListFilters();
   bindWorkersListFilters();
   bindCertificationsFilters();
+
+  if (typeof Demo !== "undefined" && Demo.active) Demo.onRender();
 }
 
 /* ============================================================
@@ -378,7 +380,7 @@ function renderDashboard() {
                       .map((site, idx) => {
                         const stats = computeSiteStats(site);
                         return `
-                      <tr class="row-clickable" data-action="navigate" data-href="#/sites/${site.id}">
+                      <tr class="row-clickable" data-action="navigate" data-href="#/sites/${site.id}" data-demo="dashboard-site-${site.id}">
                         <td class="cell-name">${idx === 0 ? `<span class="priority-tag">優先</span>` : ""}${escapeHtml(site.name)}</td>
                         <td>${escapeHtml(Store.getClientName(site.clientId))}</td>
                         <td>${formatDateJP(site.deadline)}</td>
@@ -400,7 +402,7 @@ function renderDashboard() {
                   .map((site, idx) => {
                     const stats = computeSiteStats(site);
                     return `
-                  <div class="mobile-row-card" data-action="navigate" data-href="#/sites/${site.id}">
+                  <div class="mobile-row-card" data-action="navigate" data-href="#/sites/${site.id}" data-demo="dashboard-site-${site.id}">
                     <div class="mrc-title">${idx === 0 ? `<span class="priority-tag">優先</span>` : ""}${escapeHtml(site.name)}</div>
                     <div class="mrc-subtitle">${escapeHtml(Store.getClientName(site.clientId))}</div>
                     <div class="mrc-body">
@@ -625,6 +627,7 @@ function renderSiteDetail(siteId) {
       name: item.name,
       statusLabel: "未アップロード",
       actionHtml: `<a class="btn btn-secondary" href="#/company">確認</a>`,
+      demoKey: null,
     })),
     ...stats.missingWorkerItems.map((item) => {
       const requested = item.requested;
@@ -632,7 +635,14 @@ function renderSiteDetail(siteId) {
       const actionHtml = requested
         ? `<span class="badge badge-neutral">依頼済み</span>`
         : `<button class="btn btn-secondary" data-action="open-request-modal" data-site="${site.id}" data-worker="${item.workerId}" data-cert="${item.certTypeId}">依頼</button>`;
-      return { type: "作業員", target: item.workerName, name: item.certName, statusLabel, actionHtml };
+      return {
+        type: "作業員",
+        target: item.workerName,
+        name: item.certName,
+        statusLabel,
+        actionHtml,
+        demoKey: `attention-${item.workerId}-${item.certTypeId}`,
+      };
     }),
   ];
 
@@ -717,7 +727,7 @@ function renderSiteDetail(siteId) {
       <div class="form-hint" style="padding:0 16px 12px;">※GreenSite/Buildee等へは接続していません。あくまで提出先の形式に合わせたデータ準備の表示です。</div>
     </div>
 
-    <div class="card" style="margin-bottom:14px;">
+    <div class="card" style="margin-bottom:14px;" data-demo="prep-status-card">
       <div class="section-band">提出準備状況</div>
       <div class="card-pad">
         <div class="info-grid" style="margin-bottom:12px;">
@@ -729,7 +739,7 @@ function renderSiteDetail(siteId) {
         <div class="progress-track" style="height:8px;margin-bottom:14px;"><div class="progress-fill ${stats.isComplete ? "complete" : ""}" style="width:${stats.percent}%"></div></div>
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
           <button class="btn btn-secondary" data-action="open-request-modal" data-site="${site.id}" ${stats.missingWorkerItems.length === 0 ? "disabled" : ""}>${icon("send")}不足資料をまとめて依頼</button>
-          <a class="btn btn-primary" href="#/sites/${site.id}/generate">${icon("archive")}提出資料を準備する</a>
+          <a class="btn btn-primary" href="#/sites/${site.id}/generate" data-demo="prep-generate-btn">${icon("archive")}提出資料を準備する</a>
         </div>
       </div>
     </div>
@@ -746,7 +756,7 @@ function renderSiteDetail(siteId) {
               ${needsAttentionRows
                 .map(
                   (r) => `
-              <tr>
+              <tr${r.demoKey ? ` data-demo="${r.demoKey}"` : ""}>
                 <td>${escapeHtml(r.type === "company" ? "会社" : r.type)}</td>
                 <td>${escapeHtml(r.target)}</td>
                 <td>${escapeHtml(r.name)}</td>
@@ -762,7 +772,7 @@ function renderSiteDetail(siteId) {
           ${needsAttentionRows
             .map(
               (r) => `
-          <div class="mobile-row-card">
+          <div class="mobile-row-card"${r.demoKey ? ` data-demo="${r.demoKey}"` : ""}>
             <div class="mrc-body">
               ${mrcRow(r.type === "company" ? "対象" : "作業員", escapeHtml(r.type === "company" ? "会社" : r.target))}
               ${mrcRow("必要資料", escapeHtml(r.name))}
@@ -1385,6 +1395,7 @@ function renderAIModalReview(worker, extracted, previewSrc, context) {
       "success"
     );
     renderApp();
+    if (typeof Demo !== "undefined" && Demo.active) Demo.onCertRegistered();
   });
 }
 
@@ -1476,6 +1487,7 @@ function openRequestModal(siteId, workerId, certTypeId) {
     const message = qs("#reqMessage").value.trim() || defaultMsg;
     sendMissingRequests(siteId, checked, message);
     renderApp();
+    if (typeof Demo !== "undefined" && Demo.active) Demo.onRequestSent(site, checked);
     renderRequestSuccess(site, checked);
   });
 }
@@ -1487,6 +1499,10 @@ function renderRequestSuccess(site, items) {
     `&site=${encodeURIComponent(site.name)}&deadline=${encodeURIComponent(site.deadline)}` +
     `&company=${encodeURIComponent(Store.state.company.name)}` +
     `&workerId=${encodeURIComponent(first.workerId)}&certTypeId=${encodeURIComponent(first.certTypeId)}&siteId=${encodeURIComponent(site.id)}`;
+  const inDemo = typeof Demo !== "undefined" && Demo.active;
+  const demoButtonHtml = inDemo
+    ? `<button class="btn btn-primary" id="demoOpenWorkerBtn">${icon("externalLink")}作業員側の提出を体験</button>`
+    : "";
   const html = modalShell(
     "不足資料を依頼",
     `
@@ -1497,12 +1513,21 @@ function renderRequestSuccess(site, items) {
       <div class="file-list">
         ${items.map((i) => `<div class="file-list-item">${icon("send")}${escapeHtml(i.workerName)} - ${escapeHtml(i.certName)}</div>`).join("")}
       </div>
-      <a class="btn btn-secondary btn-sm" href="${previewUrl}" target="_blank" rel="noopener">${icon("externalLink")}作業員側の受け取り画面をプレビュー</a>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:center;">
+        ${demoButtonHtml}
+        <a class="btn btn-secondary btn-sm" href="${previewUrl}" target="_blank" rel="noopener">${icon("externalLink")}作業員側の受け取り画面をプレビュー</a>
+      </div>
     </div>
     `,
     `<button class="btn btn-primary" data-action="close-modal">閉じる</button>`
   );
   openModal(html);
+  if (inDemo) {
+    qs("#demoOpenWorkerBtn").addEventListener("click", () => {
+      closeModal();
+      Demo.openWorkerFrame(`${previewUrl}&embedded=1`);
+    });
+  }
 }
 
 /* ============================================================
@@ -1992,6 +2017,7 @@ function handleAction(action, el) {
     default:
       break;
   }
+  if (typeof Demo !== "undefined" && Demo.active) Demo.onAction(action, el);
 }
 
 document.addEventListener("click", (e) => {
@@ -2007,6 +2033,7 @@ document.addEventListener("click", (e) => {
 document.addEventListener("click", (e) => {
   if (e.target.id === "bellBtn" || e.target.closest("#bellBtn")) {
     toggleNotifDropdown();
+    if (typeof Demo !== "undefined" && Demo.active) setTimeout(() => Demo.updateSpotlight(), 30);
   }
   if (e.target.id === "menuToggle" || e.target.closest("#menuToggle")) {
     toggleSidebarMobile();
@@ -2038,4 +2065,5 @@ document.addEventListener("DOMContentLoaded", () => {
   Store.init();
   if (!location.hash) location.hash = "#/dashboard";
   renderApp();
+  if (typeof Demo !== "undefined") Demo.checkEntry();
 });
