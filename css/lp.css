@@ -1,8 +1,13 @@
 /* ============================================================
    需要検証用LP（lp.html）
-   既存モック（css/style.css）のデザイントークン・コンポーネントを
-   そのまま流用し、LP独自の海外SaaS風の演出は追加しない。
+   既存モック（css/style.css）のデザイントークンを流用しつつ、
+   完成イラスト・実画面スクリーンショットを使った最終デザイン。
    ============================================================ */
+
+:root {
+  --color-accent-cyan: #1fb9c5;
+  --color-accent-cyan-light: #e4f7f8;
+}
 
 body {
   line-height: 1.7;
@@ -12,71 +17,7 @@ main {
   overflow-x: hidden;
 }
 
-/* ============ アイコン・簡易イラスト共通基盤 ============
-   線画トーンで統一。stroke: primary系、背景: 淡いブルー、
-   アクセントはsuccess/warningのみに限定する。 */
-
-.lp-icon-defs {
-  position: absolute;
-  width: 0;
-  height: 0;
-  overflow: hidden;
-}
-
-.lp-icon {
-  display: block;
-  color: var(--color-primary);
-  flex-shrink: 0;
-}
-
-.lp-icon-sub {
-  color: var(--color-neutral-500);
-}
-
-.lp-icon-accent-warning {
-  color: var(--color-warning);
-}
-
-.lp-icon-accent-danger {
-  color: var(--color-danger);
-}
-
-/* シーン：1〜2個のアイコンを淡いブルーの円/角丸背景の上に配置する共通コンテナ */
-.lp-scene {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-lg);
-  background: var(--color-primary-light);
-  flex-shrink: 0;
-}
-
-.lp-scene-badge {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--color-surface);
-  border: 1.5px solid var(--color-border);
-  box-shadow: 0 1px 3px rgba(28, 33, 36, 0.12);
-}
-
-.lp-scene-badge-tl { top: -6px; left: -6px; }
-.lp-scene-badge-tr { top: -6px; right: -6px; }
-.lp-scene-badge-br { bottom: -6px; right: -6px; }
-.lp-scene-badge-bl { bottom: -6px; left: -6px; }
-
-.lp-scene-badge.is-danger { border-color: var(--color-danger-border); background: var(--color-danger-light); }
-.lp-scene-badge.is-success { border-color: var(--color-success-border); background: var(--color-success-light); }
-.lp-scene-badge.is-warning { border-color: var(--color-warning-border); background: var(--color-warning-light); }
-
-/* 小さなラベルチップ（GreenSite / Excel など） */
+/* 小さなラベルチップ（提出方式バッジ等、現状は不使用箇所なし） */
 .lp-mini-chip {
   display: inline-flex;
   align-items: center;
@@ -228,7 +169,7 @@ main {
   justify-content: center;
 }
 
-/* ---- 実機フレーム（PC・スマホ。実システムUIをはめ込んで表示する） ---- */
+/* ---- 実機フレーム（実際のスクリーンショットをはめ込んで表示する） ---- */
 .lp-hero-visual {
   display: flex;
   justify-content: center;
@@ -237,22 +178,36 @@ main {
 .lp-hero-devices {
   position: relative;
   width: 100%;
-  max-width: 480px;
-  padding: 0 0 30px 26px;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 8px 0 46px 54px;
 }
 
 .lp-hero-devices .lp-device-phone {
   position: absolute;
-  right: -6px;
-  bottom: 0;
-  width: 120px;
-  z-index: 2;
+  right: -4px;
+  bottom: 6px;
+  width: 152px;
+  z-index: 3;
   filter: drop-shadow(0 8px 14px rgba(28, 33, 36, 0.22));
 }
 
-/* PC本体：ブラウザ風の上部バー＋サイドバー付き画面＋ベゼル・スタンド */
+.lp-hero-person {
+  position: absolute;
+  left: -10px;
+  bottom: -8px;
+  width: 150px;
+  height: auto;
+  z-index: 1;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 10px rgba(28, 33, 36, 0.14));
+}
+
+/* PC本体：ブラウザ風の上部バー＋スクリーンショット＋ベゼル・スタンド */
 .lp-device-pc {
   width: 100%;
+  position: relative;
+  z-index: 2;
 }
 
 .lp-device-pc-shell {
@@ -287,52 +242,25 @@ main {
   font-size: 10px;
   font-weight: 700;
   color: var(--color-text-sub);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 70%;
 }
 
 .lp-device-pc-screen {
-  display: flex;
   background: #fff;
   border-radius: 3px 3px 0 0;
   overflow: hidden;
-  min-height: 240px;
+  aspect-ratio: 1400 / 975;
 }
 
-.lp-device-pc-sidebar {
-  width: 84px;
-  flex-shrink: 0;
-  background: var(--color-surface);
-  border-right: 1px solid var(--color-border);
-  padding: 8px 0;
-}
-
-.lp-device-pc-logo {
-  font-size: 7.5px;
-  font-weight: 700;
-  color: var(--color-text);
-  padding: 0 9px 7px;
-  border-bottom: 1px solid var(--color-border);
-  margin-bottom: 5px;
-}
-
-.lp-device-pc-nav-item {
-  font-size: 8px;
-  padding: 4.5px 9px;
-  color: var(--color-text-sub);
-  border-left: 2px solid transparent;
-}
-
-.lp-device-pc-nav-item.active {
-  background: var(--color-primary-light);
-  border-left-color: var(--color-primary);
-  color: var(--color-primary-dark);
-  font-weight: 700;
-}
-
-.lp-device-pc-main {
-  flex: 1;
-  min-width: 0;
-  background: var(--color-bg);
-  padding: 10px;
+.lp-device-pc-screen img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
 }
 
 .lp-device-pc-neck {
@@ -351,7 +279,7 @@ main {
   border-radius: 3px;
 }
 
-/* スマホ本体：濃色ベゼル＋ノッチ＋内部スクリーン */
+/* スマホ本体：濃色ベゼル＋ノッチ＋内部スクリーンショット */
 .lp-device-phone {
   width: 180px;
 }
@@ -375,196 +303,15 @@ main {
   background: #fff;
   border-radius: 13px;
   overflow: hidden;
-  min-height: 250px;
+  aspect-ratio: 736 / 1400;
 }
 
-/* デバイス内コンテンツは既存の.lp-mock-*等をそのまま流用し、サイズだけ縮小する */
-.lp-device-pc-main .lp-mock-page-title,
-.lp-device-phone-screen .lp-mock-page-title {
-  font-size: 10px;
-  margin-bottom: 6px;
-}
-
-.lp-device-pc-main .section-band,
-.lp-device-phone-screen .section-band {
-  font-size: 9px;
-  padding: 5px 8px;
-}
-
-.lp-device-pc-main .lp-mock-row,
-.lp-device-phone-screen .lp-mock-row {
-  padding: 6px 8px;
-  font-size: 9px;
-}
-
-.lp-device-pc-main .lp-mock-row-title,
-.lp-device-phone-screen .lp-mock-row-title {
-  font-size: 9.5px;
-}
-
-.lp-device-pc-main .lp-mock-row-sub,
-.lp-device-phone-screen .lp-mock-row-sub {
-  font-size: 8px;
-}
-
-/* スマホ画面の「ラベル : 値」行では、ラベル側を折り返させない
-   （タイトル＋サブタイトルの縦積み用クラスをラベル用に転用しているため） */
-.lp-device-phone-body .lp-mock-row-sub {
-  flex-shrink: 0;
-  white-space: nowrap;
-  margin-top: 0;
-}
-
-.lp-device-phone-body .lp-mock-row-title {
-  text-align: right;
-}
-
-.lp-device-pc-main .badge,
-.lp-device-phone-screen .badge {
-  font-size: 7.5px;
-  padding: 1px 5px;
-}
-
-.lp-device-pc-main .btn,
-.lp-device-phone-screen .btn {
-  font-size: 8px;
-  padding: 3px 7px;
-  min-height: auto;
-}
-
-.lp-device-pc-main .info-table th,
-.lp-device-phone-screen .info-table th {
-  font-size: 7.5px;
-  width: 54px;
-  padding: 4px 8px;
-}
-
-.lp-device-pc-main .info-table td,
-.lp-device-phone-screen .info-table td {
-  font-size: 8px;
-  padding: 4px 8px 4px 0;
-}
-
-.lp-device-pc-main .progress-track,
-.lp-device-phone-screen .progress-track {
-  height: 5px;
-}
-
-.lp-device-pc-main .cross-icon,
-.lp-device-phone-screen .cross-icon,
-.lp-device-pc-main .check-icon,
-.lp-device-phone-screen .check-icon {
-  font-size: 8px;
-  width: 10px;
-}
-
-.lp-device-phone-header {
-  background: var(--color-primary);
-  color: #fff;
-  padding: 8px 9px;
-}
-
-.lp-device-phone-company {
-  font-size: 7px;
-  color: rgba(255, 255, 255, 0.75);
-  font-weight: 600;
-}
-
-.lp-device-phone-title {
-  font-size: 9.5px;
-  font-weight: 700;
-  margin-top: 1px;
-}
-
-.lp-device-phone-body {
-  padding: 8px 9px;
-}
-
-.lp-device-phone-preview {
-  background: var(--color-neutral-100);
-  border: 1px dashed var(--color-neutral-300);
-  border-radius: var(--radius-sm);
-  height: 42px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-neutral-400);
-  margin: 8px 0;
-}
-
-.lp-device-phone-link {
+.lp-device-phone-screen img {
   display: block;
-  text-align: center;
-  font-size: 7.5px;
-  color: var(--color-primary);
-  font-weight: 700;
-  margin-bottom: 8px;
-}
-
-.lp-mock-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  margin-bottom: 10px;
-}
-
-.lp-mock-card:last-child {
-  margin-bottom: 0;
-}
-
-.lp-mock-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 14px;
-  border-top: 1px solid var(--color-neutral-100);
-  font-size: 12.5px;
-}
-
-.lp-mock-row:first-of-type {
-  border-top: none;
-}
-
-/* ラベル:値の行で、値が長く1行に収まらない場合はラベルの下へ落として全幅で折り返す
-   （キャラクター単位の折り返しにしないため） */
-.lp-mock-row-stacked {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-}
-
-.lp-mock-row-stacked .lp-mock-row-title {
-  text-align: left;
-}
-
-.lp-mock-row-title {
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.lp-mock-row-sub {
-  font-size: 11px;
-  color: var(--color-text-sub);
-  margin-top: 1px;
-}
-
-.lp-mock-row-attention {
-  align-items: flex-start;
-}
-
-.lp-mock-btn {
-  pointer-events: none;
-}
-
-.lp-mock-info-table.info-table th {
-  width: 90px;
-  font-size: 11px;
-}
-
-.lp-mock-info-table.info-table td {
-  font-size: 12px;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
 }
 
 /* ---- 汎用セクション ---- */
@@ -585,21 +332,36 @@ main {
 .lp-pain-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 14px;
+  gap: 16px;
 }
 
 .lp-pain-card {
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
+  flex-direction: column;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 18px 20px;
+  border: 1px solid #e1e8ec;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(28, 33, 36, 0.05);
+  overflow: hidden;
+}
+
+.lp-pain-img-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 160px;
+  padding: 18px 18px 2px;
+}
+
+.lp-pain-img-wrap img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 
 .lp-pain-text {
   min-width: 0;
+  padding: 4px 20px 20px;
 }
 
 .lp-pain-q {
@@ -615,71 +377,56 @@ main {
   line-height: 1.7;
 }
 
-.lp-scene-chips {
-  display: flex;
-  flex-wrap: wrap;
-  align-content: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 6px;
-}
-
-.lp-scene-chips .lp-mini-chip {
-  font-size: 9px;
-  padding: 1.5px 5px;
-}
-
-/* ---- バラバラ→整理される トランジション図 ---- */
-.lp-funnel {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  margin-top: 36px;
-  padding-top: 32px;
+/* ---- バラバラ→整理される トランジション（実画像） ---- */
+.lp-bridge {
+  margin-top: 40px;
+  padding-top: 36px;
   border-top: 1px dashed var(--color-border);
+  text-align: center;
 }
 
-.lp-funnel-inputs {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  max-width: 420px;
-}
-
-.lp-funnel-arrow {
-  font-size: 18px;
-  color: var(--color-neutral-400);
+.lp-bridge-heading {
+  font-size: 17px;
   font-weight: 700;
-  line-height: 1;
+  color: var(--color-primary-dark);
+  margin: 0 0 20px;
+  line-height: 1.5;
+  position: relative;
+  display: inline-block;
+  padding-bottom: 10px;
 }
 
-.lp-funnel-system {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--color-primary);
-  color: #fff;
+.lp-bridge-heading::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-accent-cyan);
+}
+
+.lp-bridge-img {
+  display: block;
+  width: 100%;
+  max-width: 1050px;
+  height: auto;
+  margin: 0 auto 18px;
+}
+
+.lp-bridge-desc {
   font-size: 13px;
-  font-weight: 700;
-  padding: 10px 18px;
-  border-radius: var(--radius-md);
-}
-
-.lp-funnel-system .lp-icon {
-  color: #fff;
-}
-
-.lp-funnel-output {
-  font-size: 12.5px;
-  font-weight: 700;
   color: var(--color-text-sub);
+  line-height: 1.8;
+  max-width: 560px;
+  margin: 0 auto;
 }
 
 /* ---- このシステムなら（業務フロー：タイムライン／スネーク型） ---- */
 
-/* モバイル：左に番号＋通し線、右にシーン＋タイトル＋説明のタイムライン */
+/* モバイル：左に番号＋通し線、右に画像＋タイトル＋説明を縦に並べるタイムライン */
 .lp-flow-timeline {
   position: relative;
   max-width: 480px;
@@ -707,7 +454,7 @@ main {
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  padding: 14px 0;
+  padding: 16px 0;
 }
 
 .lp-flow-num {
@@ -715,7 +462,7 @@ main {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: var(--color-primary);
+  background: var(--color-accent-cyan);
   color: #fff;
   font-size: 13px;
   font-weight: 700;
@@ -726,8 +473,9 @@ main {
 
 .lp-flow-content {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
   min-width: 0;
   flex: 1;
 }
@@ -737,19 +485,19 @@ main {
   flex: 1;
 }
 
-.lp-scene-flow {
-  width: 48px;
-  height: 48px;
+.lp-flow-img-wrap {
+  width: 100%;
+  max-width: 210px;
+  height: 148px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.lp-scene-pair {
-  gap: 3px;
-}
-
-.lp-scene-pair-arrow {
-  font-size: 11px;
-  color: var(--color-primary);
-  font-weight: 700;
+.lp-flow-img-wrap img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 
 .lp-flow-title {
@@ -763,13 +511,6 @@ main {
   color: var(--color-text-sub);
   line-height: 1.6;
   margin-top: 2px;
-}
-
-.lp-flow-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 6px;
 }
 
 .lp-flow-cta {
@@ -808,25 +549,24 @@ main {
     align-items: center;
     text-align: center;
     gap: 10px;
-    padding: 22px 16px;
+    padding: 24px 16px;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
   }
 
   .lp-flow-content {
-    flex-direction: column;
-    gap: 8px;
+    align-items: center;
+  }
+
+  .lp-flow-img-wrap {
+    height: 168px;
   }
 
   .lp-flow-num {
     width: 26px;
     height: 26px;
     font-size: 12px;
-  }
-
-  .lp-flow-chips {
-    justify-content: center;
   }
 
   .lp-flow-arrow {
@@ -873,6 +613,23 @@ main {
   width: 100%;
 }
 
+.lp-showcase-media .lp-device-pc {
+  max-width: 420px;
+}
+
+.lp-showcase-media-group {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 12px;
+}
+
+.lp-showcase-person {
+  width: 170px;
+  height: auto;
+  flex-shrink: 0;
+}
+
 .lp-showcase-copy {
   order: 2;
   text-align: center;
@@ -915,127 +672,27 @@ main {
   color: var(--color-text-sub);
   line-height: 1.8;
   text-align: center;
-  margin: 0 0 24px;
+  margin: 0 0 28px;
 }
 
-.lp-why-diagram {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
+.lp-why-media {
+  text-align: center;
 }
 
-.lp-why-col-label {
-  font-size: 12px;
-  font-weight: 700;
+.lp-why-media img {
+  display: inline-block;
+  width: 100%;
+  max-width: 700px;
+  height: auto;
+}
+
+.lp-why-disclaimer {
+  font-size: 11.5px;
   color: var(--color-text-sub);
   text-align: center;
-  margin-bottom: 12px;
-}
-
-.lp-why-col-label-after {
-  color: var(--color-primary-dark);
-}
-
-.lp-why-arrow {
-  font-size: 18px;
-  color: var(--color-neutral-400);
-  font-weight: 700;
-  transform: rotate(90deg);
-}
-
-.lp-why-before-col,
-.lp-why-after-col {
-  width: 100%;
-  max-width: 400px;
-  border-radius: var(--radius-lg);
-  padding: 18px;
-  border: 1px solid var(--color-border);
-}
-
-.lp-why-before-col {
-  background: var(--color-neutral-50);
-}
-
-.lp-why-after-col {
-  background: var(--color-primary-light);
-  border-color: var(--color-primary-lighter);
-}
-
-.lp-why-clients {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.lp-why-client {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
-  flex-wrap: wrap;
-}
-
-.lp-why-client-name {
-  flex-shrink: 0;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--color-text);
-  min-width: 62px;
-}
-
-.lp-why-client-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.lp-why-dup-note {
-  text-align: center;
-  font-size: 11.5px;
-  color: var(--color-danger);
-  font-weight: 700;
-  margin-top: 10px;
-}
-
-.lp-why-master {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  background: var(--color-surface);
-  border: 1.5px solid var(--color-primary);
-  border-radius: var(--radius-md);
-  padding: 12px 16px;
-}
-
-.lp-why-master-title {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--color-primary-dark);
-}
-
-.lp-why-fanout {
-  display: flex;
-  justify-content: center;
-  gap: 22px;
-  height: 16px;
-}
-
-.lp-why-fanout span {
-  width: 1px;
-  height: 100%;
-  background: var(--color-primary-lighter);
-}
-
-.lp-why-master-targets {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px;
+  line-height: 1.7;
+  max-width: 560px;
+  margin: 14px auto 0;
 }
 
 /* ---- 料金仮説 ---- */
@@ -1144,13 +801,9 @@ main {
 
 /* ---- 最終CTA ---- */
 .lp-final-cta {
-  background: var(--color-primary-dark);
+  background: #eef5f8;
   padding: 52px 0;
   text-align: center;
-}
-
-.lp-final-h2 {
-  color: #fff;
 }
 
 .lp-final-cta .lp-cta-main {
@@ -1201,15 +854,6 @@ main {
   .lp-pain-grid {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
-  .lp-why-diagram {
-    flex-direction: row;
-    align-items: stretch;
-    justify-content: center;
-  }
-  .lp-why-arrow {
-    transform: none;
-    align-self: center;
-  }
 }
 
 @media (min-width: 1080px) {
@@ -1222,6 +866,21 @@ main {
   }
   .lp-br-mobile {
     display: none;
+  }
+
+  .lp-hero-devices {
+    max-width: 480px;
+    padding: 8px 0 50px 66px;
+  }
+  .lp-hero-devices .lp-device-phone {
+    width: 168px;
+    right: -10px;
+    bottom: 4px;
+  }
+  .lp-hero-person {
+    width: 176px;
+    left: -46px;
+    bottom: -4px;
   }
 
   .lp-showcase-row {
@@ -1258,5 +917,18 @@ main {
   }
   .lp-br-mobile {
     display: inline;
+  }
+  .lp-hero-devices {
+    max-width: 300px;
+    padding: 6px 0 40px 40px;
+  }
+  .lp-hero-devices .lp-device-phone {
+    width: 118px;
+  }
+  .lp-hero-person {
+    width: 110px;
+  }
+  .lp-showcase-person {
+    width: 120px;
   }
 }
