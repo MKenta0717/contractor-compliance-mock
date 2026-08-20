@@ -12,6 +12,84 @@ main {
   overflow-x: hidden;
 }
 
+/* ============ アイコン・簡易イラスト共通基盤 ============
+   線画トーンで統一。stroke: primary系、背景: 淡いブルー、
+   アクセントはsuccess/warningのみに限定する。 */
+
+.lp-icon-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.lp-icon {
+  display: block;
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.lp-icon-sub {
+  color: var(--color-neutral-500);
+}
+
+.lp-icon-accent-warning {
+  color: var(--color-warning);
+}
+
+.lp-icon-accent-danger {
+  color: var(--color-danger);
+}
+
+/* シーン：1〜2個のアイコンを淡いブルーの円/角丸背景の上に配置する共通コンテナ */
+.lp-scene {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
+  background: var(--color-primary-light);
+  flex-shrink: 0;
+}
+
+.lp-scene-badge {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  box-shadow: 0 1px 3px rgba(28, 33, 36, 0.12);
+}
+
+.lp-scene-badge-tl { top: -6px; left: -6px; }
+.lp-scene-badge-tr { top: -6px; right: -6px; }
+.lp-scene-badge-br { bottom: -6px; right: -6px; }
+.lp-scene-badge-bl { bottom: -6px; left: -6px; }
+
+.lp-scene-badge.is-danger { border-color: var(--color-danger-border); background: var(--color-danger-light); }
+.lp-scene-badge.is-success { border-color: var(--color-success-border); background: var(--color-success-light); }
+.lp-scene-badge.is-warning { border-color: var(--color-warning-border); background: var(--color-warning-light); }
+
+/* 小さなラベルチップ（GreenSite / Excel など） */
+.lp-mini-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-sub);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
 .lp-section-inner,
 .lp-header-inner {
   max-width: 1080px;
@@ -283,10 +361,17 @@ main {
 }
 
 .lp-pain-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: 18px 20px;
+}
+
+.lp-pain-text {
+  min-width: 0;
 }
 
 .lp-pain-q {
@@ -302,43 +387,240 @@ main {
   line-height: 1.7;
 }
 
-/* ---- このシステムなら（フロー） ---- */
-.lp-flow-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.lp-scene-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px;
+}
+
+.lp-scene-chips .lp-mini-chip {
+  font-size: 9px;
+  padding: 1.5px 5px;
+}
+
+/* ---- バラバラ→整理される トランジション図 ---- */
+.lp-funnel {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  gap: 6px;
+  margin-top: 36px;
+  padding-top: 32px;
+  border-top: 1px dashed var(--color-border);
+}
+
+.lp-funnel-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-width: 420px;
+}
+
+.lp-funnel-arrow {
+  font-size: 18px;
+  color: var(--color-neutral-400);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.lp-funnel-system {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 18px;
+  border-radius: var(--radius-md);
+}
+
+.lp-funnel-system .lp-icon {
+  color: #fff;
+}
+
+.lp-funnel-output {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-text-sub);
+}
+
+/* ---- このシステムなら（業務フロー：タイムライン／スネーク型） ---- */
+
+/* モバイル：左に番号＋通し線、右にシーン＋タイトル＋説明のタイムライン */
+.lp-flow-timeline {
+  position: relative;
   max-width: 480px;
   margin: 0 auto;
 }
 
-.lp-flow-list li {
+.lp-flow-timeline::before {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 15px;
+  bottom: 15px;
+  width: 2px;
+  background: var(--color-border);
+  z-index: 0;
+}
+
+.lp-flow-arrow {
+  display: none;
+}
+
+.lp-flow-step {
+  position: relative;
+  z-index: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 14px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 12px 16px;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--color-text);
+  padding: 14px 0;
 }
 
 .lp-flow-num {
   flex-shrink: 0;
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: var(--color-primary);
   color: #fff;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.lp-flow-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.lp-flow-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.lp-scene-flow {
+  width: 48px;
+  height: 48px;
+}
+
+.lp-scene-pair {
+  gap: 3px;
+}
+
+.lp-scene-pair-arrow {
+  font-size: 11px;
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.lp-flow-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.lp-flow-desc {
+  font-size: 12px;
+  color: var(--color-text-sub);
+  line-height: 1.6;
+  margin-top: 2px;
+}
+
+.lp-flow-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.lp-flow-cta {
+  text-align: center;
+  margin-top: 32px;
+}
+
+.lp-flow-cta-hint {
+  font-size: 12.5px;
+  color: var(--color-text-sub);
+  margin: 0 0 12px;
+}
+
+/* PC：1→2→3 / 6←5←4 のスネーク型フローレイアウト */
+@media (min-width: 1080px) {
+  .lp-flow-timeline {
+    max-width: none;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 34px minmax(0, 1fr) 34px minmax(0, 1fr);
+    grid-template-rows: auto 34px auto;
+    grid-template-areas:
+      "s1 a1 s2 a2 s3"
+      ".  .  .  .  ad"
+      "s6 a4 s5 a3 s4";
+    align-items: stretch;
+    column-gap: 4px;
+    row-gap: 0;
+  }
+
+  .lp-flow-timeline::before {
+    display: none;
+  }
+
+  .lp-flow-step {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+    padding: 22px 16px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+
+  .lp-flow-content {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .lp-flow-num {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+  }
+
+  .lp-flow-chips {
+    justify-content: center;
+  }
+
+  .lp-flow-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: var(--color-neutral-400);
+    font-weight: 700;
+  }
+
+  .lp-step-1 { grid-area: s1; }
+  .lp-step-2 { grid-area: s2; }
+  .lp-step-3 { grid-area: s3; }
+  .lp-step-4 { grid-area: s4; }
+  .lp-step-5 { grid-area: s5; }
+  .lp-step-6 { grid-area: s6; }
+  .lp-arrow-1 { grid-area: a1; }
+  .lp-arrow-2 { grid-area: a2; }
+  .lp-arrow-down { grid-area: ad; }
+  .lp-arrow-3 { grid-area: a3; }
+  .lp-arrow-4 { grid-area: a4; }
 }
 
 /* ---- 実際の画面 ---- */
@@ -374,8 +656,16 @@ main {
 
 .lp-screen-text {
   font-size: 12.5px;
-  color: var(--color-text-sub);
+  color: var(--color-primary-dark);
+  font-weight: 700;
   line-height: 1.7;
+}
+
+.lp-screen-callout {
+  display: inline-block;
+  color: var(--color-primary);
+  font-weight: 800;
+  margin-right: 4px;
 }
 
 .lp-screens-note {
@@ -392,52 +682,124 @@ main {
   margin: 0 0 24px;
 }
 
-.lp-why-compare {
+.lp-why-diagram {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-}
-
-.lp-why-col {
-  width: 100%;
-  max-width: 340px;
-  border-radius: var(--radius-md);
-  padding: 16px 18px;
-  text-align: center;
-}
-
-.lp-why-before {
-  background: var(--color-neutral-100);
-  border: 1px solid var(--color-border);
-}
-
-.lp-why-after {
-  background: var(--color-primary-light);
-  border: 1px solid var(--color-primary-lighter);
+  gap: 14px;
 }
 
 .lp-why-col-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--color-text-sub);
-  margin-bottom: 6px;
+  text-align: center;
+  margin-bottom: 12px;
 }
 
-.lp-why-after .lp-why-col-label {
+.lp-why-col-label-after {
   color: var(--color-primary-dark);
-}
-
-.lp-why-col-text {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--color-text);
 }
 
 .lp-why-arrow {
   font-size: 18px;
   color: var(--color-neutral-400);
   font-weight: 700;
+  transform: rotate(90deg);
+}
+
+.lp-why-before-col,
+.lp-why-after-col {
+  width: 100%;
+  max-width: 400px;
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  border: 1px solid var(--color-border);
+}
+
+.lp-why-before-col {
+  background: var(--color-neutral-50);
+}
+
+.lp-why-after-col {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary-lighter);
+}
+
+.lp-why-clients {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lp-why-client {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  flex-wrap: wrap;
+}
+
+.lp-why-client-name {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text);
+  min-width: 62px;
+}
+
+.lp-why-client-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.lp-why-dup-note {
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--color-danger);
+  font-weight: 700;
+  margin-top: 10px;
+}
+
+.lp-why-master {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+}
+
+.lp-why-master-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+
+.lp-why-fanout {
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+  height: 16px;
+}
+
+.lp-why-fanout span {
+  width: 1px;
+  height: 100%;
+  background: var(--color-primary-lighter);
+}
+
+.lp-why-master-targets {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 /* ---- 料金仮説 ---- */
@@ -606,9 +968,14 @@ main {
   .lp-screens {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  .lp-why-compare {
+  .lp-why-diagram {
     flex-direction: row;
+    align-items: stretch;
     justify-content: center;
+  }
+  .lp-why-arrow {
+    transform: none;
+    align-self: center;
   }
 }
 

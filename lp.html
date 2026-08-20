@@ -14,6 +14,72 @@
 </head>
 <body>
 
+<!-- ============================================================
+     アイコン・簡易イラストのシンボル定義（線画・統一トーン）
+     stroke: #31546B系 / 背景: 淡いブルー / アクセントは success・warning のみ
+     ============================================================ -->
+<svg class="lp-icon-defs" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="lp-i-pc" viewBox="0 0 48 48">
+      <rect x="6" y="9" width="36" height="24" rx="2.5" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <line x1="6" y1="27" x2="42" y2="27" stroke="currentColor" stroke-width="2.2"/>
+      <path d="M18 39h12M24 33v6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="lp-i-phone" viewBox="0 0 48 48">
+      <rect x="14" y="5" width="20" height="38" rx="3.5" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <line x1="14" y1="34" x2="34" y2="34" stroke="currentColor" stroke-width="2.2"/>
+      <circle cx="24" cy="38.5" r="1.6" fill="currentColor"/>
+    </symbol>
+    <symbol id="lp-i-person-office" viewBox="0 0 48 48">
+      <circle cx="24" cy="15" r="7" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <path d="M10 41c0-8.5 6.3-14 14-14s14 5.5 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="lp-i-person-worker" viewBox="0 0 48 48">
+      <path d="M13 17c0-6.5 4.9-11 11-11s11 4.5 11 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M11 17h26l-2 5H13z" fill="currentColor" opacity="0.16" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+      <circle cx="24" cy="21" r="6.5" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <path d="M10 41c0-8 6.3-13 14-13s14 5 14 13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="lp-i-cert" viewBox="0 0 48 48">
+      <rect x="7" y="9" width="34" height="24" rx="2.5" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <line x1="13" y1="16" x2="29" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <line x1="13" y1="21" x2="24" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="34" cy="26" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M32.3 30l-1.3 6 3-1.8 3 1.8-1.3-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="lp-i-document" viewBox="0 0 48 48">
+      <path d="M13 6h16l7 7v29a2 2 0 0 1-2 2H13a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+      <path d="M29 6v7h7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+      <line x1="15" y1="24" x2="33" y2="24" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <line x1="15" y1="30" x2="33" y2="30" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <line x1="15" y1="36" x2="26" y2="36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="lp-i-folder" viewBox="0 0 48 48">
+      <path d="M6 14a2.5 2.5 0 0 1 2.5-2.5h9l3 4h19a2.5 2.5 0 0 1 2.5 2.5v18a2.5 2.5 0 0 1-2.5 2.5h-31A2.5 2.5 0 0 1 6 36z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="lp-i-building" viewBox="0 0 48 48">
+      <rect x="9" y="18" width="16" height="22" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <line x1="13" y1="23" x2="21" y2="23" stroke="currentColor" stroke-width="2"/>
+      <line x1="13" y1="29" x2="21" y2="29" stroke="currentColor" stroke-width="2"/>
+      <line x1="13" y1="35" x2="21" y2="35" stroke="currentColor" stroke-width="2"/>
+      <path d="M27 40V13l11 4v6l-5-2v19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="lp-i-check" viewBox="0 0 48 48">
+      <circle cx="24" cy="24" r="17" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <path d="M16.5 24.5l5 5 10-11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="lp-i-bell" viewBox="0 0 48 48">
+      <path d="M24 8c6 0 10 4.8 10 11 0 8.5 4 10.5 4 10.5H10s4-2 4-10.5c0-6.2 4-11 10-11z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+      <path d="M20 33.5a4 4 0 0 0 8 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="lp-i-chat" viewBox="0 0 48 48">
+      <path d="M8 12a3 3 0 0 1 3-3h26a3 3 0 0 1 3 3v16a3 3 0 0 1-3 3H21l-8 7v-7h-2a3 3 0 0 1-3-3z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+      <line x1="14" y1="15" x2="34" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      <line x1="14" y1="21" x2="27" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+</svg>
+
 <div class="demo-banner">現在、正式版提供前の需要検証を行っています。掲載している画面・機能・料金は予定内容を含みます。</div>
 
 <header class="lp-header">
@@ -98,21 +164,66 @@
       <h2 class="lp-h2">提出書類の準備、<br class="lp-br-mobile">こんな状態になっていませんか？</h2>
       <div class="lp-pain-grid">
         <div class="lp-pain-card">
-          <div class="lp-pain-q">「この現場、誰の資格証が足りない？」</div>
-          <div class="lp-pain-a">作業員ごとの提出状況を、ExcelやLINEを見ながら確認している。</div>
+          <div class="lp-scene">
+            <svg class="lp-icon" width="30" height="30"><use href="#lp-i-person-office"></use></svg>
+            <span class="lp-scene-badge lp-scene-badge-tr is-danger"><svg class="lp-icon lp-icon-accent-danger" width="13" height="13"><use href="#lp-i-cert"></use></svg></span>
+          </div>
+          <div class="lp-pain-text">
+            <div class="lp-pain-q">「この現場、誰の資格証が足りない？」</div>
+            <div class="lp-pain-a">作業員ごとの提出状況を、ExcelやLINEを見ながら確認している。</div>
+          </div>
         </div>
         <div class="lp-pain-card">
-          <div class="lp-pain-q">「また同じ情報を入力している」</div>
-          <div class="lp-pain-a">元請や現場が変わるたびに、会社情報・作業員情報を再入力している。</div>
+          <div class="lp-scene">
+            <svg class="lp-icon" width="26" height="26"><use href="#lp-i-document"></use></svg>
+            <span class="lp-scene-badge lp-scene-badge-tr"><svg class="lp-icon lp-icon-sub" width="13" height="13"><use href="#lp-i-document"></use></svg></span>
+            <span class="lp-scene-badge lp-scene-badge-bl"><svg class="lp-icon lp-icon-sub" width="13" height="13"><use href="#lp-i-document"></use></svg></span>
+          </div>
+          <div class="lp-pain-text">
+            <div class="lp-pain-q">「また同じ情報を入力している」</div>
+            <div class="lp-pain-a">元請や現場が変わるたびに、会社情報・作業員情報を再入力している。</div>
+          </div>
         </div>
         <div class="lp-pain-card">
-          <div class="lp-pain-q">「資格証、もう一度送ってください」</div>
-          <div class="lp-pain-a">LINE・メール・写真フォルダから必要な資格証を探して再依頼している。</div>
+          <div class="lp-scene">
+            <svg class="lp-icon" width="28" height="28"><use href="#lp-i-phone"></use></svg>
+            <span class="lp-scene-badge lp-scene-badge-tl"><svg class="lp-icon lp-icon-sub" width="13" height="13"><use href="#lp-i-chat"></use></svg></span>
+          </div>
+          <div class="lp-pain-text">
+            <div class="lp-pain-q">「資格証、もう一度送ってください」</div>
+            <div class="lp-pain-a">LINE・メール・写真フォルダから必要な資格証を探して再依頼している。</div>
+          </div>
         </div>
         <div class="lp-pain-card">
-          <div class="lp-pain-q">「提出方法が元請ごとに違う」</div>
-          <div class="lp-pain-a">Excel、PDF、メール、GreenSite、Buildeeなどが混在している。</div>
+          <div class="lp-scene lp-scene-chips">
+            <span class="lp-mini-chip">GreenSite</span>
+            <span class="lp-mini-chip">Excel</span>
+            <span class="lp-mini-chip">PDF</span>
+            <span class="lp-mini-chip">メール</span>
+          </div>
+          <div class="lp-pain-text">
+            <div class="lp-pain-q">「提出方法が元請ごとに違う」</div>
+            <div class="lp-pain-a">Excel、PDF、メール、GreenSite、Buildeeなどが混在している。</div>
+          </div>
         </div>
+      </div>
+
+      <!-- ============ バラバラ→整理される トランジション図 ============ -->
+      <div class="lp-funnel">
+        <div class="lp-funnel-inputs">
+          <span class="lp-mini-chip">LINE</span>
+          <span class="lp-mini-chip">Excel</span>
+          <span class="lp-mini-chip">PDF</span>
+          <span class="lp-mini-chip">資格証</span>
+          <span class="lp-mini-chip">メール</span>
+        </div>
+        <div class="lp-funnel-arrow">↓</div>
+        <div class="lp-funnel-system">
+          <svg class="lp-icon" width="20" height="20"><use href="#lp-i-pc"></use></svg>
+          提出書類管理システム
+        </div>
+        <div class="lp-funnel-arrow">↓</div>
+        <div class="lp-funnel-output">現場ごとの提出準備</div>
       </div>
     </div>
   </section>
@@ -121,16 +232,115 @@
   <section class="lp-section">
     <div class="lp-section-inner">
       <h2 class="lp-h2">必要な情報を一度まとめれば、<br class="lp-br-mobile">現場ごとの「足りない」が見える。</h2>
-      <ol class="lp-flow-list">
-        <li><span class="lp-flow-num">1</span>会社・作業員・資格証を登録</li>
-        <li><span class="lp-flow-num">2</span>現場を選ぶ</li>
-        <li><span class="lp-flow-num">3</span>必要書類と不足を確認</li>
-        <li><span class="lp-flow-num">4</span>作業員へ不足資料を依頼</li>
-        <li><span class="lp-flow-num">5</span>スマホから提出</li>
-        <li><span class="lp-flow-num">6</span>元請に合わせて提出準備</li>
-      </ol>
-      <div class="lp-cta-center">
-        <a class="btn btn-primary btn-lg" href="index.html?demo=1&amp;source=lp#/dashboard" data-lp-event="middle_demo_click">3分デモでこの流れを試してみる</a>
+
+      <div class="lp-flow-timeline">
+        <div class="lp-flow-step lp-step-1">
+          <div class="lp-flow-num">1</div>
+          <div class="lp-flow-content">
+            <div class="lp-scene lp-scene-flow">
+              <svg class="lp-icon" width="26" height="26"><use href="#lp-i-pc"></use></svg>
+              <span class="lp-scene-badge lp-scene-badge-tl"><svg class="lp-icon lp-icon-sub" width="12" height="12"><use href="#lp-i-person-office"></use></svg></span>
+              <span class="lp-scene-badge lp-scene-badge-tr"><svg class="lp-icon lp-icon-sub" width="12" height="12"><use href="#lp-i-cert"></use></svg></span>
+            </div>
+            <div class="lp-flow-text">
+              <div class="lp-flow-title">会社・作業員・資格証を登録</div>
+              <div class="lp-flow-desc">一度登録した情報を、複数の現場で使えます。</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lp-flow-arrow lp-arrow-1" aria-hidden="true">→</div>
+
+        <div class="lp-flow-step lp-step-2">
+          <div class="lp-flow-num">2</div>
+          <div class="lp-flow-content">
+            <div class="lp-scene lp-scene-flow">
+              <svg class="lp-icon" width="24" height="24"><use href="#lp-i-building"></use></svg>
+              <span class="lp-scene-badge lp-scene-badge-br"><svg class="lp-icon lp-icon-sub" width="12" height="12"><use href="#lp-i-pc"></use></svg></span>
+            </div>
+            <div class="lp-flow-text">
+              <div class="lp-flow-title">現場を選ぶ</div>
+              <div class="lp-flow-desc">現場ごとに必要な提出情報を自動で整理。</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lp-flow-arrow lp-arrow-2" aria-hidden="true">→</div>
+
+        <div class="lp-flow-step lp-step-3">
+          <div class="lp-flow-num">3</div>
+          <div class="lp-flow-content">
+            <div class="lp-scene lp-scene-flow">
+              <svg class="lp-icon" width="26" height="26"><use href="#lp-i-pc"></use></svg>
+              <span class="lp-scene-badge lp-scene-badge-tr is-danger"><svg class="lp-icon lp-icon-accent-danger" width="12" height="12"><use href="#lp-i-cert"></use></svg></span>
+            </div>
+            <div class="lp-flow-text">
+              <div class="lp-flow-title">必要書類と不足を確認</div>
+              <div class="lp-flow-desc">誰の何が足りないかをすぐ確認。</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lp-flow-arrow lp-arrow-down" aria-hidden="true">↓</div>
+
+        <div class="lp-flow-step lp-step-4">
+          <div class="lp-flow-num">4</div>
+          <div class="lp-flow-content">
+            <div class="lp-scene lp-scene-flow lp-scene-pair">
+              <svg class="lp-icon" width="22" height="22"><use href="#lp-i-pc"></use></svg>
+              <span class="lp-scene-pair-arrow">→</span>
+              <svg class="lp-icon" width="18" height="18"><use href="#lp-i-phone"></use></svg>
+              <span class="lp-scene-badge lp-scene-badge-tr is-warning"><svg class="lp-icon lp-icon-accent-warning" width="12" height="12"><use href="#lp-i-bell"></use></svg></span>
+            </div>
+            <div class="lp-flow-text">
+              <div class="lp-flow-title">作業員へ不足資料を依頼</div>
+              <div class="lp-flow-desc">不足している資料だけを本人へ依頼。</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lp-flow-arrow lp-arrow-3" aria-hidden="true">←</div>
+
+        <div class="lp-flow-step lp-step-5">
+          <div class="lp-flow-num">5</div>
+          <div class="lp-flow-content">
+            <div class="lp-scene lp-scene-flow">
+              <svg class="lp-icon" width="26" height="26"><use href="#lp-i-person-worker"></use></svg>
+              <span class="lp-scene-badge lp-scene-badge-br"><svg class="lp-icon lp-icon-sub" width="12" height="12"><use href="#lp-i-phone"></use></svg></span>
+            </div>
+            <div class="lp-flow-text">
+              <div class="lp-flow-title">スマホから提出</div>
+              <div class="lp-flow-desc">作業員はスマホから資格証を提出。</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lp-flow-arrow lp-arrow-4" aria-hidden="true">←</div>
+
+        <div class="lp-flow-step lp-step-6">
+          <div class="lp-flow-num">6</div>
+          <div class="lp-flow-content">
+            <div class="lp-scene lp-scene-flow">
+              <svg class="lp-icon" width="24" height="24"><use href="#lp-i-folder"></use></svg>
+              <span class="lp-scene-badge lp-scene-badge-tr is-success"><svg class="lp-icon lp-icon-accent-success" width="12" height="12" style="color:var(--color-success);"><use href="#lp-i-check"></use></svg></span>
+            </div>
+            <div class="lp-flow-text">
+              <div class="lp-flow-title">元請に合わせて提出準備</div>
+              <div class="lp-flow-desc">提出方式に合わせて必要な資料を準備。</div>
+              <div class="lp-flow-chips">
+                <span class="lp-mini-chip">GreenSite</span>
+                <span class="lp-mini-chip">Excel</span>
+                <span class="lp-mini-chip">PDF</span>
+                <span class="lp-mini-chip">メール</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lp-flow-cta">
+        <p class="lp-flow-cta-hint">この流れを実際の画面で体験できます</p>
+        <a class="btn btn-primary btn-lg" href="index.html?demo=1&amp;source=lp#/dashboard" data-lp-event="middle_demo_click">3分デモで体験する</a>
       </div>
     </div>
   </section>
@@ -155,7 +365,7 @@
           </div>
           <div class="lp-screen-copy">
             <div class="lp-screen-title">A：現場ごとの不足確認</div>
-            <div class="lp-screen-text">誰の何が不足しているかを、現場単位ですぐ確認。</div>
+            <div class="lp-screen-text"><span class="lp-screen-callout">↑</span>不足している資料がすぐ分かる</div>
           </div>
         </div>
         <div class="lp-screen-card">
@@ -173,7 +383,7 @@
           </div>
           <div class="lp-screen-copy">
             <div class="lp-screen-title">B：作業員への資料依頼</div>
-            <div class="lp-screen-text">不足している資格証だけを本人へ提出依頼。</div>
+            <div class="lp-screen-text"><span class="lp-screen-callout">↑</span>不足している資格証だけを本人へ依頼できる</div>
           </div>
         </div>
         <div class="lp-screen-card">
@@ -186,7 +396,7 @@
           </div>
           <div class="lp-screen-copy">
             <div class="lp-screen-title">C：提出準備</div>
-            <div class="lp-screen-text">必要な資料が揃ったら、元請の提出方式に合わせて準備。</div>
+            <div class="lp-screen-text"><span class="lp-screen-callout">↑</span>元請ごとの提出方式を確認</div>
           </div>
         </div>
       </div>
@@ -205,15 +415,59 @@
         会社情報・作業員情報・資格証を、元請ごと・現場ごとにゼロから集め直すのではなく、
         自社側に一度登録した情報をもとに、現場ごとの必要資料を確認します。
       </p>
-      <div class="lp-why-compare">
-        <div class="lp-why-col lp-why-before">
-          <div class="lp-why-col-label">これまで</div>
-          <div class="lp-why-col-text">元請ごとに別々に管理する</div>
+
+      <div class="lp-why-diagram">
+        <div class="lp-why-before-col">
+          <div class="lp-why-col-label">これまで：元請ごとに別々に管理する</div>
+          <div class="lp-why-clients">
+            <div class="lp-why-client">
+              <div class="lp-why-client-name">ABC建設</div>
+              <div class="lp-why-client-chips">
+                <span class="lp-mini-chip">会社情報</span>
+                <span class="lp-mini-chip">作業員情報</span>
+                <span class="lp-mini-chip">資格証</span>
+              </div>
+            </div>
+            <div class="lp-why-client">
+              <div class="lp-why-client-name">東都建設</div>
+              <div class="lp-why-client-chips">
+                <span class="lp-mini-chip">会社情報</span>
+                <span class="lp-mini-chip">作業員情報</span>
+                <span class="lp-mini-chip">資格証</span>
+              </div>
+            </div>
+            <div class="lp-why-client">
+              <div class="lp-why-client-name">中央工務</div>
+              <div class="lp-why-client-chips">
+                <span class="lp-mini-chip">会社情報</span>
+                <span class="lp-mini-chip">作業員情報</span>
+                <span class="lp-mini-chip">資格証</span>
+              </div>
+            </div>
+          </div>
+          <div class="lp-why-dup-note">同じ情報を3回、別々に管理している</div>
         </div>
+
         <div class="lp-why-arrow">→</div>
-        <div class="lp-why-col lp-why-after">
-          <div class="lp-why-col-label">これから</div>
-          <div class="lp-why-col-text">自社の情報を一元管理し、提出先に合わせて準備する</div>
+
+        <div class="lp-why-after-col">
+          <div class="lp-why-col-label lp-why-col-label-after">これから：自社の情報を一元管理する</div>
+          <div class="lp-why-master">
+            <div class="lp-why-master-title">自社マスター</div>
+            <div class="lp-why-client-chips">
+              <span class="lp-mini-chip">会社情報</span>
+              <span class="lp-mini-chip">作業員情報</span>
+              <span class="lp-mini-chip">資格証</span>
+            </div>
+          </div>
+          <div class="lp-why-fanout" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="lp-why-master-targets">
+            <span class="lp-mini-chip">ABC建設</span>
+            <span class="lp-mini-chip">東都建設</span>
+            <span class="lp-mini-chip">中央工務</span>
+          </div>
         </div>
       </div>
     </div>
